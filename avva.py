@@ -52,7 +52,7 @@ def avva(command):
         talk(error)
 
 
-talk('Hello. I am Ava.')
+talk('Hello. I am Ava. How may I help you today?')
 
 # loop to continue executing multiple commands
 while True:
