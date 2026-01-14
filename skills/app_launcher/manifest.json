@@ -7,6 +7,7 @@
     "intents": {
         "open browser": "launch_application(\"browser\")",
         "launch terminal": "launch_application(\"terminal\")",
+        "launch terminal emulator": "launch_application(\"terminal_emulator\")",
         "open files": "launch_application(\"files\")",
         "start calculator": "launch_application(\"calculator\")",
         "open settings": "launch_application(\"settings\")",

@@ -93,16 +93,36 @@ class SkillManager:
                 args_str = match.group(2)
 
             if tool_name in self.registry:
-                # Basic argument parsing (can be improved)
+                # Basic argument parsing
                 if not args_str:
-                    return self.registry[tool_name]()
+                    result = self.registry[tool_name]()
                 else:
-                    # Strip quotes and split basic args
                     args = [a.strip().strip('"').strip("'") for a in args_str.split(",")]
-                    return self.registry[tool_name](*args)
+                    result = self.registry[tool_name](*args)
+                
+                # Handle structured dict results (Phase 2 Standard)
+                if isinstance(result, dict):
+                    return self._format_structured_result(result)
+                return str(result)
             
             return f"Tool '{tool_name}' not found."
         except Exception as e:
             return f"Execution error for '{exec_str}': {e}"
+
+    def _format_structured_result(self, res):
+        """Converts a dict result from a skill into a conversational string."""
+        status = res.get("status", "error")
+        
+        if status == "launched":
+            return f"Success! I've opened {res.get('app')} for you."
+        elif status == "ambiguous":
+            options = ", ".join(res.get("options", []))
+            return f"I found a few matches: {options}. Which one did you mean?"
+        elif status == "not_found":
+            return f"I'm sorry, I couldn't find an application related to '{res.get('query')}'."
+        elif status == "error":
+            return f"I ran into a problem: {res.get('message', 'Unknown error')}"
+        
+        return str(res)
 
 skill_manager = SkillManager()
