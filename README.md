@@ -1,17 +1,31 @@
-A.V.V.A
+A.V.V.A - Linux Virtual Assistant
 
+## Setup Instructions
 
-Make sure to have all prerequisite requirements installed.
+1. **Install prerequisite system requirements (Linux):**
+   If you are on a Debian/Ubuntu based system, run:
+   ```bash
+   sudo apt install python3-venv build-essential portaudio19-dev python3-dev
+   ```
 
-Run the following command in the root of the project]
-` pip install -r requirements.txt 
+2. **Create and activate a virtual environment:**
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate
+   ```
 
-This installs all the packages required for the project to run
+3. **Install Python dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-If pyaudio fails to install exits, run this command
-` sudo apt install build-essential portaudio19-dev python3.10-dev
+4. **Configuration:**
+   Copy the example environment file and add your API keys:
+   ```bash
+   cp .env.example .env
+   ```
 
-This makes sure to install 'portaudio' which is a prerequisite of 'pyaudio'.
-If portaudio is missing, the error is raised.
-
-
+5. **Run AVVA:**
+   ```bash
+   python avva.py
+   ```
