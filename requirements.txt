@@ -1,6 +1,8 @@
 gTTS
 SpeechRecognition
-PyAudio
 pygame
 python-dotenv
 selenium
+sounddevice
+numpy
+scipy
