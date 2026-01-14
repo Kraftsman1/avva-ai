@@ -9,7 +9,7 @@ The foundation of a Linux assistant is physical control over the machine.
 
 | Skill | Description | Tools/Libraries | Status |
 | :--- | :--- | :--- | :--- |
-| **System Stats** | Report CPU, RAM, Disk, and Temp usage. | `psutil` | ⏳ Planned |
+| **System Stats** | Report CPU, RAM, Disk, and Temp usage. | `psutil` | ✅ Done |
 | **Volume/Mute** | Control system audio levels. | `amixer`, `pactl` | ⏳ Planned |
 | **Brightness** | Control screen backlight. | `brightnessctl`, `light` | ⏳ Planned |
 | **App Launcher** | Open apps by name (e.g., "Open Firefox"). | `subprocess`, `shutil` | ⏳ Planned |
