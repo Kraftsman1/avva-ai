@@ -11,7 +11,7 @@ All notable changes to the AVVA project will be documented in this file.
 - **Isolated Speech Modules**:
     - `core/stt.py`: Handles microphone input and speech recognition.
     - `core/tts.py`: Handles text-to-speech synthesis and playback.
-- **Brain Framework**: Introduced `core/brain.py` as a central logic processor, ready for LLM integration.
+- **Brain Framework**: Introduced `core/brain.py` as a central logic processor with **Local Intent Fallback** (works without API keys for time, date, and basic queries).
 - **Template Config**: Added `.env.example` for easy project setup.
 
 ### Changed
