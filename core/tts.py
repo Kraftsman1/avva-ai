@@ -1,29 +1,88 @@
-from gtts import gTTS
 from pygame import mixer
 import os
+import requests
 from core.config import config
 
 def speak(text):
-    """Converts text to speech and plays it."""
+    """Orchestrates Text-to-Speech using the configured engine."""
+    engine = config.TTS_ENGINE.lower()
     print(f"{config.NAME}: {text}")
+    
+    # Create temp directory
+    os.makedirs('temp/media', exist_ok=True)
+    filename = os.path.join('temp/media', 'response.mp3')
+    
     try:
-        # Create temp directory if it doesn't exist
-        os.makedirs('temp/media', exist_ok=True)
-        filename = os.path.join('temp/media', 'response.mp3')
-        
-        # Create audio file
-        tts = gTTS(text=text, lang=config.LANGUAGE)
-        tts.save(filename)
-        
-        # Play audio
+        if engine == "gtts":
+            _speak_gtts(text, filename)
+        elif engine == "openai":
+            _speak_openai(text, filename)
+        elif engine == "elevenlabs":
+            _speak_elevenlabs(text, filename)
+        elif engine == "piper":
+            # Piper usually outputs WAV
+            filename = filename.replace('.mp3', '.wav')
+            _speak_piper(text, filename)
+        else:
+            print(f"Unknown TTS engine: {engine}. Falling back to gTTS.")
+            _speak_gtts(text, filename)
+
+        _play_audio(filename)
+    except Exception as e:
+        print(f"TTS Error ({engine}): {e}")
+
+def _play_audio(filename):
+    """Plays the generated audio file."""
+    try:
         mixer.init()
         mixer.music.load(filename)
         mixer.music.play()
-        
-        # Wait for audio to finish
         while mixer.music.get_busy():
             continue
-            
         mixer.quit()
     except Exception as e:
-        print(f"Error in TTS: {e}")
+        print(f"Playback Error: {e}")
+
+def _speak_gtts(text, filename):
+    from gtts import gTTS
+    tts = gTTS(text=text, lang=config.LANGUAGE)
+    tts.save(filename)
+
+def _speak_openai(text, filename):
+    from openai import OpenAI
+    client = OpenAI(api_key=config.OPENAI_API_KEY)
+    response = client.audio.speech.create(
+        model="tts-1",
+        voice="alloy",
+        input=text
+    )
+    response.stream_to_file(filename)
+
+def _speak_elevenlabs(text, filename):
+    from elevenlabs import save
+    from elevenlabs.client import ElevenLabs
+    client = ElevenLabs(api_key=config.ELEVENLABS_API_KEY)
+    audio = client.generate(
+        text=text,
+        voice="Rachel",
+        model="eleven_multilingual_v2"
+    )
+    save(audio, filename)
+
+def _speak_piper(text, filename):
+    """
+    Piper local TTS implementation. 
+    Note: Requires piper binary to be present in the path or temp folder.
+    """
+    # Simple check for model
+    model_path = f"temp/models/{config.PIPER_VOICE}.onnx"
+    if not os.path.exists(model_path):
+        print(f"Piper model not found at {model_path}. Please download it.")
+        # Fallback to gtts for now so the app doesn't crash
+        _speak_gtts(text, filename.replace('.wav', '.mp3'))
+        return
+
+    # Call piper binary (assumes piper is in path)
+    # echo "text" | piper --model model.onnx --output_file file.wav
+    command = f'echo "{text}" | piper --model {model_path} --output_file {filename}'
+    os.system(command)
