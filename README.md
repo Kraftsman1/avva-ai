@@ -6,7 +6,8 @@ AVVA (Advanced Voice Virtual Assistant) is an open-source, modular virtual assis
 The goal of AVVA is to provide a private, extensible, and intelligent assistant that lives in your terminal and controls your OS. By leveraging modern LLMs (OpenAI, Gemini, Ollama) and local Python tools, AVVA can understand complex requests and execute them directly on your system.
 
 ## ✨ Features
-- **Voice First**: Built-in Speech-to-Text (STT) and Text-to-Speech (TTS) capabilities.
+- **Voice First**: Built-in Speech-to-Text (STT) and multi-engine Text-to-Speech (TTS).
+- **Fluid Voices**: Support for **Piper** (local neural high-speed TTS), **OpenAI**, and **ElevenLabs** for human-like interaction.
 - **LLM Powered**: Support for multiple AI providers (Google Gemini, OpenAI, and local Ollama) to serve as the assistant's "brain".
 - **Local Intelligence**: Works out-of-the-box without API keys for basic tasks like time, date, and greetings.
 - **OS Integration**: Designed to be extended with "Linux Skills" like opening applications, system monitoring, and media control.
@@ -26,7 +27,13 @@ AVVA requires Python 3.10+ and a few system libraries for audio handling. On Deb
 sudo apt install python3-venv build-essential portaudio19-dev python3-dev
 ```
 
-### 2. Create and Activate a Virtual Environment
+### 2. Set up high-quality local Audio (Piper)
+Download the local TTS binary and voice models:
+```bash
+./setup_audio.sh
+```
+
+### 3. Create and Activate a Virtual Environment
 ```bash
 python3 -m venv venv
 source venv/bin/activate

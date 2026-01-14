@@ -71,18 +71,29 @@ def _speak_elevenlabs(text, filename):
 
 def _speak_piper(text, filename):
     """
-    Piper local TTS implementation. 
-    Note: Requires piper binary to be present in the path or temp folder.
+    Piper local TTS implementation using standalone binary.
     """
-    # Simple check for model
-    model_path = f"temp/models/{config.PIPER_VOICE}.onnx"
-    if not os.path.exists(model_path):
-        print(f"Piper model not found at {model_path}. Please download it.")
-        # Fallback to gtts for now so the app doesn't crash
+    # 1. Check for binary
+    piper_path = os.path.join(os.getcwd(), 'bin', 'piper')
+    if not os.path.exists(piper_path):
+        print(f"Piper binary not found at {piper_path}. Falling back to gTTS.")
         _speak_gtts(text, filename.replace('.wav', '.mp3'))
         return
 
-    # Call piper binary (assumes piper is in path)
-    # echo "text" | piper --model model.onnx --output_file file.wav
-    command = f'echo "{text}" | piper --model {model_path} --output_file {filename}'
-    os.system(command)
+    # 2. Check for model
+    model_path = f"temp/models/{config.PIPER_VOICE}.onnx"
+    if not os.path.exists(model_path):
+        print(f"Piper model not found at {model_path}. Falling back to gTTS.")
+        _speak_gtts(text, filename.replace('.wav', '.mp3'))
+        return
+
+    # 3. Call piper with LD_LIBRARY_PATH pointed to our bin folder
+    # This ensures the binary can find the provided shared objects (.so files)
+    bin_dir = os.path.join(os.getcwd(), 'bin')
+    command = f'export LD_LIBRARY_PATH={bin_dir}:$LD_LIBRARY_PATH && echo "{text}" | {piper_path} --model {model_path} --output_file {filename}'
+    
+    try:
+        os.system(command)
+    except Exception as e:
+        print(f"Error executing Piper: {e}")
+        _speak_gtts(text, filename.replace('.wav', '.mp3'))

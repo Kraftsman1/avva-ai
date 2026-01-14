@@ -5,8 +5,9 @@ __pycache__/
 venv/
 .env
 
-# Audio Temp Files
+# Audio Temp Files & Models
 temp/
+bin/
 *.mp3
 *.wav
 
