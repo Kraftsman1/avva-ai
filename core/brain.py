@@ -1,8 +1,7 @@
 from core.config import config
-import datetime
 import os
 import re
-from core.tool_registry import execute_tool, get_tools_description
+from core.skill_manager import skill_manager
 
 class Brain:
     def __init__(self):
@@ -17,14 +16,14 @@ class Brain:
             self._init_llm()
 
     def _init_llm(self):
-        """Initializes the selected LLM provider with Tool Use instructions."""
+        """Initializes the LLM and dynamically injects loaded skills into the prompt."""
         self.system_prompt = (
             f"You are {self.name}, an intelligent Linux Virtual Assistant. "
-            "You have access to specific system tools. If a user asks for something you can do with a tool, "
+            "You have access to system tools. If a user asks for something you can do with a tool, "
             "respond ONLY with the tool command in the format: [TOOL_CALL: tool_name] "
             "Do not add any other text if you are calling a tool. "
-            "Here are your available tools:\n"
-            f"{get_tools_description()}\n\n"
+            "Here are your currently installed tools:\n"
+            f"{skill_manager.get_tool_descriptions()}\n\n"
             "If no tool is appropriate, respond naturally in a helpful and concise way."
         )
 
@@ -44,15 +43,17 @@ class Brain:
             print(f"Error initializing LLM ({self.llm_provider}): {e}")
 
     def process(self, command):
-        """Processes the user command and routes to LLM or Local skills."""
+        """Tiered Intent Pipeline implementation."""
         if not command:
             return None
             
-        # For certain critical/fast commands, we can still use local matching to save latency
-        if any(word in command for word in ['hello', 'hi', self.name.lower()]):
-            return f"Hello! I am {self.name}. How can I help you today?"
+        # --- TIER 1: Direct Match (Zero Latency) ---
+        direct_tool = skill_manager.get_direct_match(command)
+        if direct_tool:
+            print(f"System: Direct Match found for '{direct_tool}'")
+            return skill_manager.execute(direct_tool)
 
-        # 2. LLM Processing with Tool Extraction
+        # --- TIER 3: LLM Fallback (Reasoning) ---
         if self.llm_ready:
             llm_response = self._call_llm(command)
             
@@ -60,13 +61,12 @@ class Brain:
             tool_match = re.search(r"\[TOOL_CALL:\s*(\w+)\]", llm_response)
             if tool_match:
                 tool_name = tool_match.group(1)
-                print(f"System: Executing tool '{tool_name}'...")
-                return execute_tool(tool_name)
+                print(f"System: LLM suggested tool '{tool_name}'")
+                return skill_manager.execute(tool_name)
             
             return llm_response
             
-        # 3. Final Fallback (Simulate local matching if LLM is offline)
-        return "I heard you, but my LLM brain isn't configured, and I don't have a local regex for that yet."
+        return "I heard you, but I couldn't find a direct skill match and my LLM brain isn't configured."
 
     def _call_llm(self, command):
         """Sends the command to the configured LLM provider."""
@@ -84,6 +84,6 @@ class Brain:
                 )
                 return response.choices[0].message.content
         except Exception as e:
-            return f"I ran into an issue while thinking: {e}"
+            return f"Thinking error: {e}"
 
 brain = Brain()

@@ -1,0 +1,16 @@
+{
+    "id": "core.system_stats",
+    "name": "System Stats",
+    "description": "Report CPU, RAM, and Disk usage.",
+    "version": "1.0.0",
+    "author": "AVVA Core",
+    "intents": [
+        "system usage",
+        "cpu usage",
+        "ram usage",
+        "memory usage",
+        "disk space",
+        "storage info"
+    ],
+    "entry_point": "main.py"
+}

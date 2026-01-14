@@ -1,0 +1,14 @@
+{
+    "id": "core.clock",
+    "name": "Clock",
+    "description": "Provide current time and date.",
+    "version": "1.0.0",
+    "author": "AVVA Core",
+    "intents": [
+        "time",
+        "clock",
+        "date",
+        "today"
+    ],
+    "entry_point": "main.py"
+}
