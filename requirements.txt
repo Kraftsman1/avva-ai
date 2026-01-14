@@ -10,4 +10,5 @@ openai
 elevenlabs
 requests
 google-generativeai
+psutil
 # piper-tts  # We will handle Piper via binary or simpler wrapper to avoid build issues
