@@ -1,0 +1,19 @@
+{
+    "id": "core.app_launcher",
+    "name": "App Launcher",
+    "description": "Dynamic app launcher using semantic category matching.",
+    "version": "1.1.0",
+    "author": "AVVA Core",
+    "intents": {
+        "open browser": "launch_application(\"browser\")",
+        "launch terminal": "launch_application(\"terminal\")",
+        "open files": "launch_application(\"files\")",
+        "start calculator": "launch_application(\"calculator\")",
+        "open settings": "launch_application(\"settings\")",
+        "open editor": "launch_application(\"editor\")"
+    },
+    "entry_point": "main.py",
+    "permissions": [
+        "system_control"
+    ]
+}

@@ -20,7 +20,7 @@ class Brain:
         self.system_prompt = (
             f"You are {self.name}, an intelligent Linux Virtual Assistant. "
             "You have access to system tools. If a user asks for something you can do with a tool, "
-            "respond ONLY with the tool command in the format: [TOOL_CALL: tool_name] "
+            "respond ONLY with the tool command in the format: [TOOL_CALL: tool_name(\"optional_argument\")] "
             "Do not add any other text if you are calling a tool. "
             "Here are your currently installed tools:\n"
             f"{skill_manager.get_tool_descriptions()}\n\n"
@@ -48,21 +48,21 @@ class Brain:
             return None
             
         # --- TIER 1: Direct Match (Zero Latency) ---
-        direct_tool = skill_manager.get_direct_match(command)
-        if direct_tool:
-            print(f"System: Direct Match found for '{direct_tool}'")
-            return skill_manager.execute(direct_tool)
+        direct_exec_str = skill_manager.get_direct_match(command)
+        if direct_exec_str:
+            print(f"System: Direct Match found for '{direct_exec_str}'")
+            return skill_manager.execute(direct_exec_str)
 
         # --- TIER 3: LLM Fallback (Reasoning) ---
         if self.llm_ready:
             llm_response = self._call_llm(command)
             
-            # Check for Tool Call pattern: [TOOL_CALL: name]
-            tool_match = re.search(r"\[TOOL_CALL:\s*(\w+)\]", llm_response)
+            # Check for Tool Call pattern: [TOOL_CALL: name("arg")] or [TOOL_CALL: name]
+            tool_match = re.search(r"\[TOOL_CALL:\s*([^\]]+)\]", llm_response)
             if tool_match:
-                tool_name = tool_match.group(1)
-                print(f"System: LLM suggested tool '{tool_name}'")
-                return skill_manager.execute(tool_name)
+                exec_str = tool_match.group(1).strip()
+                print(f"System: LLM suggested tool execution: '{exec_str}'")
+                return skill_manager.execute(exec_str)
             
             return llm_response
             
