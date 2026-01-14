@@ -1,2 +1,14 @@
-audio.mp3
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
 venv/
+.env
+
+# Audio Temp Files
+temp/
+*.mp3
+*.wav
+
+# DS_Store
+.DS_Store
