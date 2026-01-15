@@ -1,52 +1,41 @@
+#!/usr/bin/env python3
 import os
 import glob
 import subprocess
 import shlex
 import shutil
+import rapidfuzz
+from pathlib import Path
 
 # -----------------------------
 # Assistant Tool Manifest
 # -----------------------------
 MANIFEST = {
     "launch_application": {
-        "description": (
-            "Launch a desktop application by name or intent "
-            "(e.g. 'firefox', 'browser', 'terminal', 'terminal_emulator')."
-        )
+        "description": "Launch a desktop application by name or generic intent (e.g. 'browser', 'terminal')."
     }
 }
 
 # -----------------------------
-# Constants & Mappings
+# Constants & Aliases
 # -----------------------------
 FIELD_CODES = ["%U", "%u", "%F", "%f", "%i", "%c", "%k", "%n", "%m", "%v"]
 
 INTENT_ALIASES = {
-    "browser": ["browser", "internet", "web", "chrome", "firefox", "navigator"],
-    "terminal": ["terminal", "console", "shell", "bash", "command prompt"],
-    "terminal_emulator": ["terminal emulator", "gui terminal", "gnome-terminal", "kgx", "konsole"],
-    "calculator": ["calculator", "calc"],
-    "editor": ["editor", "text editor", "code", "ide", "writing"],
-    "files": ["files", "file manager", "explorer", "nautilus", "thunar"],
-    "settings": ["settings", "preferences", "control panel", "config"],
-    "music": ["music", "audio", "player", "spotify"],
-    "video": ["video", "movie", "media", "vlc"]
-}
-
-CATEGORY_MAP = {
-    "browser": ["WebBrowser", "Network"],
-    "terminal": ["TerminalEmulator", "System"],
-    "calculator": ["Calculator", "Utility"],
-    "editor": ["TextEditor", "Development", "IDE"],
-    "files": ["FileManager", "System", "Core"],
-    "settings": ["Settings", "DesktopSettings"],
-    "music": ["Audio", "Music", "Player"],
-    "video": ["Video", "Player"]
+    "browser": ["internet", "web", "browser", "navigator"],
+    "terminal": ["terminal", "console", "shell", "command prompt"],
+    "calculator": ["calc", "calculator", "math"],
+    "editor": ["text editor", "code", "editor", "ide"],
+    "files": ["file manager", "explorer", "files"],
+    "settings": ["preferences", "settings", "configuration"],
+    "music": ["music", "audio", "player"],
+    "video": ["video", "movie", "media"]
 }
 
 SEARCH_DIRS = [
     "/usr/share/applications",
-    os.path.expanduser("~/.local/share/applications"),
+    "/usr/local/share/applications",
+    str(Path.home() / ".local/share/applications"),
     "/var/lib/flatpak/exports/share/applications",
 ]
 
@@ -60,19 +49,19 @@ def clean_exec(exec_cmd):
     return exec_cmd.strip()
 
 def find_preferred_terminal():
-    """Finds an installed terminal emulator for CLI apps."""
+    """Finds an installed terminal emulator."""
     candidates = ["com.system76.CosmicTerm", "gnome-terminal", "kgx", "konsole", "alacritty", "kitty", "xterm"]
     for term in candidates:
         if shutil.which(term):
             return term
     return "xterm"
 
-def normalize_intent(query):
-    query_clean = query.lower().strip()
-    for canonical, aliases in INTENT_ALIASES.items():
-        if query_clean == canonical or query_clean in aliases:
-            return canonical
-    return query_clean
+def fallback_path_executable(query):
+    """Checks if the query is a direct command in $PATH."""
+    exe = shutil.which(query)
+    if exe:
+        return {"name": query, "exec": exe, "terminal": True, "keywords": []}
+    return None
 
 # -----------------------------
 # Desktop Index
@@ -93,15 +82,13 @@ class DesktopIndex:
 
     def _parse_desktop_file(self, path):
         data = {
-            "path": path,
-            "name": "",
-            "exec": "",
+            "path": path, 
+            "name": "", 
+            "exec": "", 
             "terminal": False,
-            "categories": [],
-            "keywords": [],
-            "hidden": False,
+            "keywords": [], 
+            "hidden": False
         }
-
         try:
             with open(path, "r", errors="ignore") as f:
                 current_section = ""
@@ -119,10 +106,10 @@ class DesktopIndex:
                         data["exec"] = line.split("=", 1)[1].strip()
                     elif line.startswith("Terminal="):
                         data["terminal"] = line.split("=", 1)[1].strip().lower() == "true"
-                    elif line.startswith("Categories="):
-                        data["categories"] = line.split("=", 1)[1].split(";")
                     elif line.startswith("Keywords="):
-                        data["keywords"] = line.split("=", 1)[1].lower().split(";")
+                        # Keywords are semicolon separated
+                        kws = line.split("=", 1)[1].split(";")
+                        data["keywords"].extend([k.strip().lower() for k in kws if k.strip()])
                     elif line.startswith("NoDisplay=true"):
                         data["hidden"] = True
         except Exception:
@@ -130,45 +117,48 @@ class DesktopIndex:
 
         if not data["name"] or data["hidden"] or not data["exec"]:
             return None
-
         return data
 
     def resolve(self, query):
+        """Uses RapidFuzz to find the best matching application."""
         query_clean = query.lower().strip()
-        intent = normalize_intent(query_clean)
-
         candidates = []
+
         for entry in self.entries:
-            score = 0
             name = entry["name"].lower()
             fname = os.path.basename(entry["path"]).lower()
+            
+            # 1. Check for Intent Match (Manual boost)
+            intent_boost = 0
+            for canonical, aliases in INTENT_ALIASES.items():
+                if query_clean == canonical or query_clean in aliases:
+                    # If this app belongs to the category, boost it
+                    # We check keywords/names for category hints since user removed Category parsing
+                    if canonical in name or any(canonical in kw for kw in entry["keywords"]):
+                        intent_boost = 20
 
-            if query_clean == name:
-                score += 100
-            elif query_clean in name:
-                score += 50
-
-            if query_clean in fname:
-                score += 40
-
-            if intent in CATEGORY_MAP:
-                for cat in CATEGORY_MAP[intent]:
-                    if cat in entry["categories"]:
-                        score += 30
-
+            # 2. Fuzzy Matching with RapidFuzz
+            # WRatio is great for varying length strings and partial matches
+            score_name = rapidfuzz.fuzz.WRatio(query_clean, name)
+            score_file = rapidfuzz.fuzz.WRatio(query_clean, fname)
+            
+            max_kw_score = 0
             for kw in entry["keywords"]:
-                if query_clean in kw:
-                    score += 20
-                    break
+                kw_score = rapidfuzz.fuzz.WRatio(query_clean, kw)
+                if kw_score > max_kw_score:
+                    max_kw_score = kw_score
 
-            if score > 0:
-                candidates.append((score, entry))
+            # Combined score
+            final_score = (score_name * 1.0) + (score_file * 0.5) + (max_kw_score * 0.3) + intent_boost
+            
+            if final_score > 60: # Threshold for a confident match
+                candidates.append((final_score, entry))
 
         candidates.sort(key=lambda x: x[0], reverse=True)
         return candidates
 
 # -----------------------------
-# Public Tool Entry
+# Launcher Logic
 # -----------------------------
 INDEX = DesktopIndex()
 
@@ -177,58 +167,43 @@ def launch_application(query):
         return {"status": "error", "message": "No application specified"}
 
     results = INDEX.resolve(query)
+    entry = None
 
-    if not results:
-        return {"status": "not_found", "query": query}
-
-    # Ambiguity handling
-    top_score = results[0][0]
-    close_matches = [r for r in results if r[0] >= top_score - 10]
-
-    if len(close_matches) > 1 and query.lower() not in results[0][1]["name"].lower():
-        return {
-            "status": "ambiguous",
-            "options": [r[1]["name"] for r in close_matches[:5]]
-        }
-
-    entry = results[0][1]
+    if results:
+        # Check if top result is significantly better
+        if len(results) > 1 and (results[0][0] - results[1][0] < 5):
+            # If scores are very close, report ambiguity
+            return {
+                "status": "ambiguous",
+                "options": [r[1]["name"] for r in results[:5]]
+            }
+        entry = results[0][1]
+    else:
+        # Fallback to direct executable if no desktop file found
+        entry = fallback_path_executable(query)
+        if not entry:
+            return {"status": "not_found", "query": query}
 
     try:
-        intent = normalize_intent(query)
-
-        # -----------------
-        # Dual Terminal Handling
-        # -----------------
-        if intent == "terminal":  # CLI/console apps
-            term_bin = find_preferred_terminal()
-            cmd = [term_bin, "-e"] + shlex.split(clean_exec(entry["exec"]))
-            subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-
-        elif intent == "terminal_emulator":  # GUI terminals
-            subprocess.Popen(["gio", "launch", entry["path"]], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-
-        elif entry["terminal"]:  # Terminal=true for CLI apps
-            term_bin = find_preferred_terminal()
-            cmd = [term_bin, "-e"] + shlex.split(clean_exec(entry["exec"]))
-            subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-
-        elif entry["exec"]:  # Standard GUI apps
-            cmd = shlex.split(clean_exec(entry["exec"]))
-            subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-
-        else:  # Fallback
-            subprocess.Popen(["gio", "launch", entry["path"]], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        # 1. Clean the Exec command
+        clean_cmd = clean_exec(entry["exec"])
+        
+        # 2. Handle Terminal apps
+        if entry.get("terminal", False):
+            term = find_preferred_terminal()
+            # Most modern terminals support -e or -- to execute commands
+            subprocess.Popen([term, "-e"] + shlex.split(clean_cmd), 
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        else:
+            # GUI apps
+            subprocess.Popen(shlex.split(clean_cmd), 
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
         return {"status": "launched", "app": entry["name"]}
-
     except Exception as e:
-        return {"status": "error", "message": str(e)}
+        return {"status": "error", "message": f"Launch failed: {str(e)}"}
 
-# -----------------------------
-# Test
-# -----------------------------
 if __name__ == "__main__":
-    print(launch_application("terminal"))            # CLI/console
-    print(launch_application("terminal emulator"))  # GUI terminal
-    print(launch_application("calculator"))
-    print(launch_application("browser"))
+    tests = ["terminal", "browser", "calculator", "vlc", "code", "nautilus"]
+    for t in tests:
+        print(f"Testing '{t}':", launch_application(t))

@@ -11,4 +11,5 @@ elevenlabs
 requests
 google-generativeai
 psutil
+rapidfuzz
 # piper-tts  # We will handle Piper via binary or simpler wrapper to avoid build issues
