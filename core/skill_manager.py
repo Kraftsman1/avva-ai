@@ -163,8 +163,9 @@ class SkillManager:
             
             # Handle structured dict results (Phase 2 Standard)
             if isinstance(result, dict):
-                return self._format_structured_result(result)
-            return str(result)
+                result["text"] = self._format_structured_result(result)
+                return result
+            return result
             
         except Exception as e:
             return f"Execution error for '{exec_str}': {e}"
@@ -199,6 +200,8 @@ class SkillManager:
         elif status == "ambiguous":
             options = ", ".join(res.get("options", []))
             return f"I found a few matches: {options}. Which one did you mean?"
+        elif res.get("type") == "system_stats":
+            return f"CPU is at {res['cpu']}%, RAM at {res['ram']}%, and Disk at {res['disk']}%."
         elif status == "not_found":
             return f"I'm sorry, I couldn't find an application related to '{res.get('query')}'."
         elif status == "error":

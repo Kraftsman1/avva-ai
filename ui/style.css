@@ -120,6 +120,42 @@ window {
     /* Indigo 700 */
 }
 
+/* --- WIDGET STYLES --- */
+.stats-widget {
+    background-color: rgba(255, 255, 255, 0.05);
+    padding: 10px;
+    border-radius: 6px;
+    margin-top: 8px;
+}
+
+.widget-label {
+    font-size: 13px;
+    color: #e0e7ff;
+    opacity: 0.8;
+}
+
+.widget-value {
+    font-size: 13px;
+    font-weight: bold;
+    color: #ffffff;
+}
+
+progress,
+trough {
+    min-height: 8px;
+    border-radius: 4px;
+}
+
+progress {
+    background-color: #818cf8;
+    /* Light Indigo */
+}
+
+trough {
+    background-color: #1e1b4b;
+    /* Darker Indigo */
+}
+
 /* --- INPUT AREA --- */
 .input-container {
     padding: 16px 24px;

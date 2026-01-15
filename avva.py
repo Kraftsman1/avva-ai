@@ -20,8 +20,9 @@ def main():
         
         # 3. Speak response
         if response:
-            print(f"AVVA: {response}")
-            speak(response)
+            text = response["text"] if isinstance(response, dict) else response
+            print(f"AVVA: {text}")
+            speak(text)
 
 if __name__ == "__main__":
     try:

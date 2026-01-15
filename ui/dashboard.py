@@ -12,20 +12,62 @@ from core.tts import speak
 from core.brain import brain
 from core.config import config
 
+class StatsWidget(Gtk.Box):
+    def __init__(self, cpu, ram, disk):
+        super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        self.get_style_context().add_class("stats-widget")
+        self.set_margin_top(5)
+        self.set_margin_bottom(5)
+        
+        self._add_row("CPU Usage", cpu)
+        self._add_row("RAM Usage", ram)
+        self._add_row("Disk Space", disk)
+
+    def _add_row(self, title, value):
+        row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        
+        # Label with value
+        header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        label = Gtk.Label(label=title)
+        label.get_style_context().add_class("widget-label")
+        val_label = Gtk.Label(label=f"{value}%")
+        val_label.get_style_context().add_class("widget-value")
+        
+        header.pack_start(label, False, False, 0)
+        header.pack_end(val_label, False, False, 0)
+        row.pack_start(header, False, False, 0)
+        
+        # Progress Bar
+        bar = Gtk.ProgressBar()
+        bar.set_fraction(value / 100.0)
+        bar.get_style_context().add_class("widget-progress")
+        row.pack_start(bar, False, False, 0)
+        
+        self.pack_start(row, False, False, 0)
+
 class Bubble(Gtk.Box):
-    def __init__(self, text, sender="user"):
+    def __init__(self, text, sender="user", data=None):
         super().__init__(orientation=Gtk.Orientation.HORIZONTAL)
         self.get_style_context().add_class("bubble-row")
         
-        label = Gtk.Label(label=text)
-        label.set_line_wrap(True)
-        label.set_line_wrap_mode(2)  # WORD_CHAR mode
-        label.set_max_width_chars(50)
-        label.set_xalign(0 if sender == "avva" else 1)
-        label.set_selectable(True)  # Allow text selection
+        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
         
+        if text:
+            label = Gtk.Label(label=text)
+            label.set_line_wrap(True)
+            label.set_line_wrap_mode(2)  # WORD_CHAR mode
+            label.set_max_width_chars(50)
+            label.set_xalign(0 if sender == "avva" else 1)
+            label.set_selectable(True)
+            vbox.pack_start(label, False, False, 0)
+
+        # Handle Rich Widgets
+        if data and data.get("type") == "system_stats":
+            widget = StatsWidget(data['cpu'], data['ram'], data['disk'])
+            vbox.pack_start(widget, False, False, 0)
+            
         box = Gtk.EventBox()
-        box.add(label)
+        box.add(vbox)
         box.get_style_context().add_class("bubble")
         box.get_style_context().add_class(sender)
         
@@ -154,11 +196,11 @@ class Dashboard(Gtk.Window):
         if not self.listening_enabled:
             self.update_orb(None)
 
-    def add_message(self, text, sender="user"):
-        GLib.idle_add(self._do_add_message, text, sender)
+    def add_message(self, text, sender="user", data=None):
+        GLib.idle_add(self._do_add_message, text, sender, data)
 
-    def _do_add_message(self, text, sender):
-        bubble = Bubble(text, sender)
+    def _do_add_message(self, text, sender, data):
+        bubble = Bubble(text, sender, data)
         self.chat_box.pack_start(bubble, False, False, 0)
         
         # Auto-scroll to bottom with slight delay for animation
@@ -206,9 +248,16 @@ class Dashboard(Gtk.Window):
         response = brain.process(command)
         
         if response:
-            self.add_message(response, "avva")
+            if isinstance(response, dict):
+                text = response.get("text")
+                data = response
+            else:
+                text = response
+                data = None
+                
+            self.add_message(text, "avva", data)
             self.update_orb("speaking")
-            speak(response)
+            speak(text)
         
         self.update_orb(None)
 

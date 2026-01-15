@@ -19,7 +19,13 @@ MANIFEST = {
 def get_system_stats():
     res = ipc_bridge.call("get_system_stats")
     if res.get("status") == "success":
-        return f"CPU: {res['cpu']}%, RAM: {res['ram']}%, Disk: {res['disk']}%"
+        return {
+            "status": "success",
+            "type": "system_stats",
+            "cpu": res['cpu'],
+            "ram": res['ram'],
+            "disk": res['disk']
+        }
     return f"Error: {res.get('message')}"
 
 def get_cpu_info():
