@@ -12,8 +12,14 @@ class SkillManager:
         self.skills_dir = skills_dir
         self.registry = {}       # tool_name -> function
         self.tool_metadata = {}  # tool_name -> description
+        self.tool_permissions = {} # tool_name -> list of permissions
         self.static_intents = {} # phrase -> execution_string
         self.regex_intents = []  # list of (compiled_regex, execution_template)
+        
+        # Whitelist of allowed permissions for the session
+        # In the future, this will be populated from a user config or GTK prompt
+        self.allowed_permissions = ["sys_info_read", "system_control"]
+        
         self.load_all_skills()
 
     def load_all_skills(self):
@@ -39,9 +45,13 @@ class SkillManager:
             entry_point = manifest.get("entry_point", "main.py")
             entry_path = os.path.join(folder_path, entry_point)
             
+            # Use importlib to load the module
             spec = importlib.util.spec_from_file_location(folder_name, entry_path)
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
+            
+            # Extract permissions from manifest
+            plugin_permissions = manifest.get("permissions", [])
             
             # 1. Register tools from the module MANIFEST
             if hasattr(module, 'MANIFEST'):
@@ -50,7 +60,8 @@ class SkillManager:
                     if hasattr(module, tool_id):
                         self.registry[tool_id] = getattr(module, tool_id)
                         self.tool_metadata[tool_id] = info.get("description", "")
-                        print(f"  - Registered Tool: {tool_id}")
+                        self.tool_permissions[tool_id] = plugin_permissions
+                        print(f"  - Registered Tool: {tool_id} (Perms: {plugin_permissions})")
 
             # 2. Register Intents (Direct + Parametric)
             intents = manifest.get("intents", {})
@@ -123,27 +134,33 @@ class SkillManager:
             # Parse tool name and arguments
             match = re.match(r"(\w+)\((.*)\)", exec_str)
             if not match:
-                # If it's just a tool name without parens, try to execute it
                 tool_name = exec_str
                 args_str = ""
             else:
                 tool_name = match.group(1)
                 args_str = match.group(2)
 
-            if tool_name in self.registry:
-                # Basic argument parsing
-                if not args_str:
-                    result = self.registry[tool_name]()
-                else:
-                    args = [a.strip().strip('"').strip("'") for a in args_str.split(",")]
-                    result = self.registry[tool_name](*args)
-                
-                # Handle structured dict results (Phase 2 Standard)
-                if isinstance(result, dict):
-                    return self._format_structured_result(result)
-                return str(result)
+            if tool_name not in self.registry:
+                return f"Tool '{tool_name}' not found."
+
+            # --- PERMISSION CHECK ---
+            required_perms = self.tool_permissions.get(tool_name, [])
+            for perm in required_perms:
+                if perm not in self.allowed_permissions:
+                    return f"❌ Permission Denied: Skill '{tool_name}' requires '{perm}' which is not approved."
+
+            # --- EXECUTION ---
+            if not args_str:
+                result = self.registry[tool_name]()
+            else:
+                args = [a.strip().strip('"').strip("'") for a in args_str.split(",")]
+                result = self.registry[tool_name](*args)
             
-            return f"Tool '{tool_name}' not found."
+            # Handle structured dict results (Phase 2 Standard)
+            if isinstance(result, dict):
+                return self._format_structured_result(result)
+            return str(result)
+            
         except Exception as e:
             return f"Execution error for '{exec_str}': {e}"
 

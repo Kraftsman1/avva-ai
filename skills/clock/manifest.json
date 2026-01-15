@@ -10,5 +10,8 @@
         "time": "get_time()",
         "date": "get_date()"
     },
-    "entry_point": "main.py"
+    "entry_point": "main.py",
+    "permissions": [
+        "sys_info_read"
+    ]
 }

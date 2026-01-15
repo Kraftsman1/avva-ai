@@ -10,5 +10,8 @@
         "ram": "get_ram_info()",
         "disk": "get_disk_info()"
     },
-    "entry_point": "main.py"
+    "entry_point": "main.py",
+    "permissions": [
+        "sys_info_read"
+    ]
 }
