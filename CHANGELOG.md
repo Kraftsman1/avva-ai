@@ -2,7 +2,29 @@
 
 All notable changes to the AVVA project will be documented in this file.
 
-## [Unreleased] - 2026-01-14
+## [0.2.0] - 2026-01-15
+
+### Added
+- **Plugin Architecture (V2)**: Transitioned to a folder-based plugin system. Each skill now resides in its own directory with a `manifest.json` for discovery and permissions.
+- **Parametric Intent Router**: Implemented a regex-capable local router in `SkillManager`. It can now capture variables (e.g., app names) from natural language and inject them into tool calls.
+- **Standardized Skill Schema**: Introduced a structured JSON output schema for skills, allowing for consistent handling of success, ambiguity, and errors.
+- **RapidFuzz Integration**: Switched to `rapidfuzz` for high-performance fuzzy matching in the App Launcher and intent discovery.
+- **Production-Grade App Launcher**: 
+    - Full `.desktop` file parsing for `Exec`, `Categories`, and `Keywords`.
+    - Native `Terminal=true` handling for terminal-based applications.
+    - Automatic cleaning of Freedesktop field codes (e.g., `%U`, `%f`).
+- **Execution Transparency**: Added real-time command/response logging to `avva.py` for better user visibility.
+
+### Changed
+- **Tiered Intent Pipeline**: Refactored the Brain and SkillManager to support a three-tier system: static match → parametric regex → LLM fallback.
+- **Skill Manifests**: Updated all core skills (Clock, System Stats, App Launcher) to use the new dynamic intent format.
+- **Brain Refactor**: The Brain now dynamically generates tool descriptions for the LLM based on loaded plugin metadata.
+
+### Fixed
+- **App Launching on COSMIC**: Resolved an issue where COSMIC-specific applications (like `cosmic-term`) wouldn't launch due to lack of terminal awareness.
+- **Fuzzy Collisions**: Tuned regex patterns to prevent greedy matches between specialized skills.
+
+## [0.1.0] - 2026-01-14
 
 ### Added
 - **Modular Project Structure**: Created `core/` and `skills/` directories to separate concerns.
