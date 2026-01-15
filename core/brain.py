@@ -47,11 +47,11 @@ class Brain:
         if not command:
             return None
             
-        # --- TIER 1: Direct Match (Zero Latency) ---
-        direct_exec_str = skill_manager.get_direct_match(command)
-        if direct_exec_str:
-            print(f"System: Direct Match found for '{direct_exec_str}'")
-            return skill_manager.execute(direct_exec_str)
+        # --- TIER 1: Local Intent Matching (Static + Parametric) ---
+        exec_str = skill_manager.get_intent_match(command)
+        if exec_str:
+            print(f"System: Intent Match found for '{exec_str}'")
+            return skill_manager.execute(exec_str)
 
         # --- TIER 3: LLM Fallback (Reasoning) ---
         if self.llm_ready:

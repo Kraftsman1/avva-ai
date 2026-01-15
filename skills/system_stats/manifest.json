@@ -4,13 +4,11 @@
     "description": "Report CPU, RAM, and Disk usage.",
     "version": "1.0.0",
     "author": "AVVA Core",
-    "intents": [
-        "system usage",
-        "cpu usage",
-        "ram usage",
-        "memory usage",
-        "disk space",
-        "storage info"
-    ],
+    "intents": {
+        "regex:(?:system stats|pc stats|machine info)": "get_system_stats()",
+        "cpu": "get_cpu_info()",
+        "ram": "get_ram_info()",
+        "disk": "get_disk_info()"
+    },
     "entry_point": "main.py"
 }

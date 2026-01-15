@@ -8,7 +8,12 @@ class SkillManager:
         self.skills_dir = skills_dir
         self.registry = {}       # tool_name -> function
         self.tool_metadata = {}  # tool_name -> description
-        self.direct_matches = {} # phrase -> execution_string (e.g. "open_firefox()")
+    def __init__(self, skills_dir="skills"):
+        self.skills_dir = skills_dir
+        self.registry = {}       # tool_name -> function
+        self.tool_metadata = {}  # tool_name -> description
+        self.static_intents = {} # phrase -> execution_string
+        self.regex_intents = []  # list of (compiled_regex, execution_template)
         self.load_all_skills()
 
     def load_all_skills(self):
@@ -16,7 +21,7 @@ class SkillManager:
         if not os.path.exists(self.skills_dir):
             os.makedirs(self.skills_dir)
             
-        print(f"System: Discoverying plugins in '{self.skills_dir}'...")
+        print(f"System: Discovering plugins in '{self.skills_dir}'...")
         
         for folder in os.listdir(self.skills_dir):
             folder_path = os.path.join(self.skills_dir, folder)
@@ -26,7 +31,7 @@ class SkillManager:
                 self._load_plugin(folder, folder_path, manifest_path)
 
     def _load_plugin(self, folder_name, folder_path, manifest_path):
-        """Standardized plugin loader based on AVA platform spec."""
+        """Standardized plugin loader supporting direct and parametric intents."""
         try:
             with open(manifest_path, 'r') as f:
                 manifest = json.load(f)
@@ -47,29 +52,62 @@ class SkillManager:
                         self.tool_metadata[tool_id] = info.get("description", "")
                         print(f"  - Registered Tool: {tool_id}")
 
-            # 2. Register Tier 1 Direct Match Intents
+            # 2. Register Intents (Direct + Parametric)
             intents = manifest.get("intents", {})
             if isinstance(intents, dict):
-                for phrase, exec_str in intents.items():
-                    self.direct_matches[phrase.lower()] = exec_str
+                for pattern, exec_template in intents.items():
+                    self._register_intent(pattern, exec_template, folder_name)
             elif isinstance(intents, list):
-                # Fallback for old style list
-                for phrase in intents:
-                    if hasattr(module, 'MANIFEST'):
-                        first_tool = list(module_manifest.keys())[0]
-                        self.direct_matches[phrase.lower()] = f"{first_tool}()"
-                    
+                # Legacy list support: map all phrases to the first tool in MANIFEST
+                if hasattr(module, 'MANIFEST'):
+                    first_tool = list(getattr(module, 'MANIFEST').keys())[0]
+                    for phrase in intents:
+                        self.static_intents[phrase.lower()] = f"{first_tool}()"
+
             print(f"✨ Loaded Plugin: {manifest.get('name', folder_name)}")
             
         except Exception as e:
             print(f"❌ Error loading plugin '{folder_name}': {e}")
 
-    def get_direct_match(self, command):
-        """Check for exact keyword matches (Tier 1 Intent)."""
+    def _register_intent(self, pattern, exec_template, folder_name):
+        """Helper to register a single intent pattern."""
+        pattern = pattern.lower()
+        if pattern.startswith("regex:"):
+            regex_pattern = pattern[6:].strip()
+            try:
+                compiled = re.compile(regex_pattern, re.IGNORECASE)
+                self.regex_intents.append((compiled, exec_template))
+                print(f"  - Registered Parametric Intent: {regex_pattern}")
+            except re.error as e:
+                print(f"  ❌ Invalid regex in {folder_name}: {e}")
+        else:
+            self.static_intents[pattern] = exec_template
+
+    def get_intent_match(self, command):
+        """
+        Check for any local matches (Tier 1 & Tier 2).
+        Returns the resolved execution string or None.
+        """
         cmd_clean = command.lower().strip()
-        for phrase, exec_str in self.direct_matches.items():
+        
+        # 1. Check Static Intents (Priority 1)
+        if cmd_clean in self.static_intents:
+            return self.static_intents[cmd_clean]
+            
+        for phrase, exec_str in self.static_intents.items():
             if phrase in cmd_clean:
                 return exec_str
+
+        # 2. Check Regex Intents (Priority 2)
+        for regex, template in self.regex_intents:
+            match = regex.search(cmd_clean)
+            if match:
+                # Replace $1, $2, etc with capture groups
+                resolved_exec = template
+                for i, group in enumerate(match.groups(), 1):
+                    resolved_exec = resolved_exec.replace(f"${i}", group)
+                return resolved_exec
+
         return None
 
     def get_tool_descriptions(self):
@@ -114,7 +152,7 @@ class SkillManager:
         status = res.get("status", "error")
         
         if status == "launched":
-            return f"Success! I've opened {res.get('app')} for you."
+            return f"Success! Launching {res.get('app')} for you."
         elif status == "ambiguous":
             options = ", ".join(res.get("options", []))
             return f"I found a few matches: {options}. Which one did you mean?"

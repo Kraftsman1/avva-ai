@@ -4,11 +4,11 @@
     "description": "Provide current time and date.",
     "version": "1.0.0",
     "author": "AVVA Core",
-    "intents": [
-        "time",
-        "clock",
-        "date",
-        "today"
-    ],
+    "intents": {
+        "regex:(?:what time|tell me the time|current time)": "get_time()",
+        "regex:(?:today|date|what day)": "get_date()",
+        "time": "get_time()",
+        "date": "get_date()"
+    },
     "entry_point": "main.py"
 }

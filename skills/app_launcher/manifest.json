@@ -5,13 +5,8 @@
     "version": "1.1.0",
     "author": "AVVA Core",
     "intents": {
-        "open browser": "launch_application(\"browser\")",
-        "launch terminal": "launch_application(\"terminal\")",
-        "launch terminal emulator": "launch_application(\"terminal_emulator\")",
-        "open files": "launch_application(\"files\")",
-        "start calculator": "launch_application(\"calculator\")",
-        "open settings": "launch_application(\"settings\")",
-        "open editor": "launch_application(\"editor\")"
+        "regex:(?:launch|open|start|run)\\s+(.*)": "launch_application(\"$1\")",
+        "regex:^([a-z0-9_-]+)$": "launch_application(\"$1\")"
     },
     "entry_point": "main.py",
     "permissions": [
