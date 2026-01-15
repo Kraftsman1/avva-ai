@@ -51,8 +51,12 @@ class Brain:
                 self.llm_ready = True
             elif self.llm_provider == "ollama":
                 import ollama
+                # Warm up and Verify
+                # We do a tiny request to load the model into VRAM
+                ollama.chat(model=self.model_name, messages=[{"role": "user", "content": "hi"}], options={"num_predict": 1})
                 self.llm_ready = True
-                print(f"System: Ollama backend ready (Model: {self.model_name})")
+                self.messages = [{"role": "system", "content": self.system_prompt}]
+                print(f"System: Ollama backend optimized & ready (Model: {self.model_name})")
         except Exception as e:
             print(f"Error initializing LLM ({self.llm_provider}): {e}")
 
@@ -116,13 +120,18 @@ class Brain:
                 return response.choices[0].message.content
             elif self.llm_provider == "ollama":
                 import ollama
+                # We reuse self.messages (containing system prompt) for KV-caching benefits in Ollama/llama.cpp
+                # For pure intent extraction, we don't want history to bleed in, 
+                # so we only send [System, CurrentUserMessage]
+                messages = self.messages + [{"role": "user", "content": command}]
                 response = ollama.chat(
                     model=self.model_name,
-                    messages=[
-                        {"role": "system", "content": self.system_prompt},
-                        {"role": "user", "content": command}
-                    ],
-                    format="json" # Enforce JSON mode if supported
+                    messages=messages,
+                    format="json",
+                    options={
+                        "temperature": 0.2, # Low temp for deterministic JSON
+                        "num_predict": 256, # Limit response length to save time
+                    }
                 )
                 return response['message']['content']
         except Exception as e:

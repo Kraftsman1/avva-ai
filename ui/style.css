@@ -53,24 +53,25 @@ window {
     border-radius: 50px;
     background-color: #18181b;
     border: 2px solid #27272a;
+    transition: all 0.5s ease;
 }
 
 .orb.listening {
     background-color: #1e3a8a;
     border-color: #3b82f6;
-    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+    box-shadow: 0 0 10px 2px rgba(59, 130, 246, 0.5);
 }
 
 .orb.thinking {
     background-color: #78350f;
     border-color: #f59e0b;
-    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.1);
+    box-shadow: 0 0 15px 5px rgba(245, 158, 11, 0.4);
 }
 
 .orb.speaking {
     background-color: #14532d;
     border-color: #22c55e;
-    box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.1);
+    box-shadow: 0 0 10px 2px rgba(34, 197, 94, 0.5);
 }
 
 .orb-status {

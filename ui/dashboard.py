@@ -224,7 +224,7 @@ class Dashboard(Gtk.Window):
         
         status_map = {
             "listening": "Listening...",
-            "thinking": "Processing...",
+            "thinking": "Thinking...",
             "speaking": "Speaking...",
             None: "Ready"
         }
