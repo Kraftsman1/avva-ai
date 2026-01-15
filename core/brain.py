@@ -3,6 +3,7 @@ import os
 import json
 import re
 from core.skill_manager import skill_manager
+from core.persistence import storage
 
 class Brain:
     def __init__(self):
@@ -65,6 +66,21 @@ class Brain:
         if not command:
             return None
             
+        # Log User Query
+        storage.log_interaction("user", command)
+        
+        response = self._get_response(command)
+        
+        # Log Assistant Response
+        if response:
+            res_text = response.get("text") if isinstance(response, dict) else str(response)
+            tool_call = response.get("exec_str") if isinstance(response, dict) else None # We should probably store exec_str in result
+            storage.log_interaction("avva", res_text, tool_call)
+            
+        return response
+
+    def _get_response(self, command):
+        """Internal helper to get response from tiers."""
         # --- TIER 1/2: Local Intent Matching (Static + Parametric) ---
         exec_str = skill_manager.get_intent_match(command)
         if exec_str:

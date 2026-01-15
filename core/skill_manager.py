@@ -3,12 +3,9 @@ import os
 import json
 import importlib.util
 import re
+from core.persistence import storage
 
 class SkillManager:
-    def __init__(self, skills_dir="skills"):
-        self.skills_dir = skills_dir
-        self.registry = {}       # tool_name -> function
-        self.tool_metadata = {}  # tool_name -> description
     def __init__(self, skills_dir="skills"):
         self.skills_dir = skills_dir
         self.registry = {}       # tool_name -> function
@@ -17,9 +14,12 @@ class SkillManager:
         self.static_intents = {} # phrase -> execution_string
         self.regex_intents = []  # list of (compiled_regex, execution_template)
         
-        # Whitelist of allowed permissions for the session
-        # In the future, this will be populated from a user config or GTK prompt
-        self.allowed_permissions = ["sys_info_read", "system_control"]
+        # Load persistent permissions
+        self.allowed_permissions = [] # No hardcoded defaults, let the user decide
+        stored_perms = storage.get_allowed_permissions()
+        for _, perm in stored_perms:
+            if perm not in self.allowed_permissions:
+                self.allowed_permissions.append(perm)
         
         self.load_all_skills()
 
@@ -151,7 +151,8 @@ class SkillManager:
                     print(f"🔒 Skill '{tool_name}' requesting permission '{perm}'...")
                     if self._request_permission(tool_name, perm):
                         self.allowed_permissions.append(perm)
-                        print(f"✅ Permission '{perm}' granted by user.")
+                        storage.save_permission(tool_name, perm)
+                        print(f"✅ Permission '{perm}' granted and saved to DB.")
                     else:
                         return f"❌ Permission Denied: Skill '{tool_name}' requires '{perm}' which was rejected."
 
@@ -165,6 +166,7 @@ class SkillManager:
             # Handle structured dict results (Phase 2 Standard)
             if isinstance(result, dict):
                 result["text"] = self._format_structured_result(result)
+                result["exec_str"] = exec_str
                 return result
             return result
             
