@@ -194,6 +194,35 @@ class SkillManager:
             print(f"⚠️ UI Error: Could not spawn permission prompt: {e}")
             return False
 
+    def get_all_required_permissions(self):
+        """Aggregates all unique permissions required by currently loaded skills."""
+        master_list = [] # List of (skill_name, permission)
+        for tool, perms in self.tool_permissions.items():
+            for p in perms:
+                master_list.append((tool, p))
+        return master_list
+
+    def toggle_permission(self, skill_name, permission, granted):
+        """Updates session cache and persistence for a specific permission."""
+        if granted:
+            if permission not in self.allowed_permissions:
+                self.allowed_permissions.append(permission)
+            storage.save_permission(skill_name, permission)
+        else:
+            # We only remove from allowed_permissions if NO other skill requires it
+            # This is a simplified logic – ideally permissions should be per-skill
+            storage.revoke_permission(skill_name, permission)
+            
+            # Re-check if we still need this permission for any other skill
+            still_needed = False
+            for s, p in storage.get_allowed_permissions():
+                if p == permission:
+                    still_needed = True
+                    break
+            
+            if not still_needed and permission in self.allowed_permissions:
+                self.allowed_permissions.remove(permission)
+
     def _format_structured_result(self, res):
         """Converts a dict result from a skill into a conversational string."""
         status = res.get("status", "error")
@@ -205,6 +234,11 @@ class SkillManager:
             return f"I found a few matches: {options}. Which one did you mean?"
         elif res.get("type") == "system_stats":
             return f"CPU is at {res['cpu']}%, RAM at {res['ram']}%, and Disk at {res['disk']}%."
+        elif res.get("type") == "permissions":
+            count = res.get("count", 0)
+            if count == 0:
+                return "You haven't granted any special permissions yet."
+            return f"I found {count} active permission mappings in your system memory."
         elif status == "not_found":
             return f"I'm sorry, I couldn't find an application related to '{res.get('query')}'."
         elif status == "error":

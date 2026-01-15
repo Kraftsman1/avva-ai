@@ -54,6 +54,18 @@ class Persistence:
         finally:
             conn.close()
 
+    def revoke_permission(self, skill_name, permission):
+        """Removes a granted permission from the database."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        try:
+            cursor.execute('''
+                DELETE FROM permissions WHERE skill_name = ? AND permission = ?
+            ''', (skill_name, permission))
+            conn.commit()
+        finally:
+            conn.close()
+
     def get_allowed_permissions(self):
         """Returns a list of all granted (skill, permission) tuples."""
         conn = sqlite3.connect(self.db_path)

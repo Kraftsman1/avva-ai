@@ -84,6 +84,110 @@ class AppWidget(Gtk.Box):
             from core.ipc_bridge import ipc_bridge
             ipc_bridge.call("launch_app", exec_cmd=self.exec_cmd, name=self.app_name)
 
+class PermissionWidget(Gtk.Box):
+    def __init__(self, perms):
+        super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        self.get_style_context().add_class("permission-list-widget")
+        self.set_margin_top(5)
+        self.set_margin_bottom(5)
+        
+        header = Gtk.Label()
+        header.set_markup("<b>Active Security Permissions</b>")
+        header.set_xalign(0)
+        header.get_style_context().add_class("widget-header")
+        self.pack_start(header, False, False, 4)
+        
+        for p in perms:
+            row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+            row.get_style_context().add_class("permission-row")
+            
+            icon = Gtk.Image.new_from_icon_name("security-high-symbolic", Gtk.IconSize.MENU)
+            row.pack_start(icon, False, False, 0)
+            
+            label = Gtk.Label(label=f"{p['skill']} → {p['permission']}")
+            label.set_xalign(0)
+            label.get_style_context().add_class("permission-label")
+            row.pack_start(label, True, True, 0)
+            
+            status = Gtk.Label(label="Allowed")
+            status.get_style_context().add_class("permission-status-tag")
+            row.pack_end(status, False, False, 0)
+            
+            self.pack_start(row, False, False, 0)
+
+class PermissionSettingsDialog(Gtk.Dialog):
+    def __init__(self, parent):
+        super().__init__(title="Security & Permissions", transient_for=parent, flags=0)
+        self.set_default_size(400, 500)
+        self.get_style_context().add_class("settings-dialog")
+        
+        box = self.get_content_area()
+        box.set_spacing(10)
+        box.set_margin_top(20)
+        box.set_margin_bottom(20)
+        box.set_margin_start(20)
+        box.set_margin_end(20)
+        
+        # Header
+        label = Gtk.Label()
+        label.set_markup("<span size='large' weight='bold'>Skill Permissions</span>")
+        label.set_xalign(0)
+        box.pack_start(label, False, False, 10)
+        
+        # Scrolled window for permission list
+        scrolled = Gtk.ScrolledWindow()
+        scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        scrolled.set_min_content_height(350)
+        
+        list_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
+        scrolled.add(list_box)
+        box.pack_start(scrolled, True, True, 0)
+        
+        # Load all permissions
+        from core.skill_manager import skill_manager
+        all_perms = skill_manager.get_all_required_permissions()
+        from core.persistence import storage
+        granted_perms = storage.get_allowed_permissions() # list of (skill, perm)
+        
+        for skill, perm in all_perms:
+            row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+            row.get_style_context().add_class("settings-row")
+            
+            icon = Gtk.Image.new_from_icon_name("security-high-symbolic", Gtk.IconSize.MENU)
+            row.pack_start(icon, False, False, 0)
+            
+            vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+            s_label = Gtk.Label(label=skill.capitalize())
+            s_label.set_xalign(0)
+            s_label.get_style_context().add_class("settings-skill-label")
+            vbox.pack_start(s_label, False, False, 0)
+            
+            p_label = Gtk.Label(label=perm)
+            p_label.set_xalign(0)
+            p_label.get_style_context().add_class("settings-perm-label")
+            vbox.pack_start(p_label, False, False, 0)
+            
+            row.pack_start(vbox, True, True, 0)
+            
+            sw = Gtk.Switch()
+            sw.set_valign(Gtk.Align.CENTER)
+            
+            # Check if granted
+            is_granted = (skill, perm) in granted_perms
+            sw.set_active(is_granted)
+            
+            sw.connect("state-set", self.on_switch_toggled, skill, perm)
+            row.pack_end(sw, False, False, 0)
+            
+            list_box.pack_start(row, False, False, 0)
+            
+        self.show_all()
+
+    def on_switch_toggled(self, switch, state, skill, perm):
+        from core.skill_manager import skill_manager
+        skill_manager.toggle_permission(skill, perm, state)
+        return False # Accept state change
+
 class Bubble(Gtk.Box):
     def __init__(self, text, sender="user", data=None):
         super().__init__(orientation=Gtk.Orientation.HORIZONTAL)
@@ -111,6 +215,9 @@ class Bubble(Gtk.Box):
                 data.get("exec_cmd")
             )
             vbox.pack_start(widget, False, False, 0)
+        elif data and data.get("type") == "permissions":
+            widget = PermissionWidget(data.get("permissions", []))
+            vbox.pack_start(widget, False, False, 0)
             
         box = Gtk.EventBox()
         box.add(vbox)
@@ -126,7 +233,7 @@ class Bubble(Gtk.Box):
 
 class Dashboard(Gtk.Window):
     def __init__(self):
-        super().__init__(title=f"{config.NAME} Dashboard")
+        super().__init__(title=f"{config.NAME} Desktop")
         Handy.init()
         
         # Window Config
@@ -169,6 +276,14 @@ class Dashboard(Gtk.Window):
         self.mic_toggle.get_style_context().add_class("control-btn")
         self.mic_toggle.connect("toggled", self.on_mic_toggled)
         header.pack_end(self.mic_toggle, False, False, 0)
+        
+        # Security Settings button
+        self.security_btn = Gtk.Button()
+        sec_icon = Gtk.Label(label="🛡️")
+        self.security_btn.add(sec_icon)
+        self.security_btn.get_style_context().add_class("control-btn")
+        self.security_btn.connect("clicked", self.on_security_clicked)
+        header.pack_end(self.security_btn, False, False, 5)
         
         self.main_box.pack_start(header, False, False, 0)
 
@@ -236,6 +351,11 @@ class Dashboard(Gtk.Window):
         self.listening_enabled = True
         self.thread = threading.Thread(target=self.voice_loop, daemon=True)
         self.thread.start()
+
+    def on_security_clicked(self, button):
+        dialog = PermissionSettingsDialog(self)
+        dialog.run()
+        dialog.destroy()
 
     def on_mic_toggled(self, button):
         self.listening_enabled = button.get_active()
