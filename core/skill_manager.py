@@ -147,7 +147,12 @@ class SkillManager:
             required_perms = self.tool_permissions.get(tool_name, [])
             for perm in required_perms:
                 if perm not in self.allowed_permissions:
-                    return f"❌ Permission Denied: Skill '{tool_name}' requires '{perm}' which is not approved."
+                    print(f"🔒 Skill '{tool_name}' requesting permission '{perm}'...")
+                    if self._request_permission(tool_name, perm):
+                        self.allowed_permissions.append(perm)
+                        print(f"✅ Permission '{perm}' granted by user.")
+                    else:
+                        return f"❌ Permission Denied: Skill '{tool_name}' requires '{perm}' which was rejected."
 
             # --- EXECUTION ---
             if not args_str:
@@ -163,6 +168,27 @@ class SkillManager:
             
         except Exception as e:
             return f"Execution error for '{exec_str}': {e}"
+
+    def _request_permission(self, skill_name, permission):
+        """Spawns the GTK Permission Overlay and waits for user response."""
+        try:
+            import subprocess
+            import sys
+            
+            # Use the current python executable to run the UI script
+            ui_script = os.path.join(os.path.dirname(__file__), "permission_prompt.py")
+            
+            # Run the process and wait for result
+            # Code 0 = Allow, 1 = Deny
+            proc = subprocess.run(
+                [sys.executable, ui_script, skill_name, permission],
+                capture_output=False
+            )
+            
+            return proc.returncode == 0
+        except Exception as e:
+            print(f"⚠️ UI Error: Could not spawn permission prompt: {e}")
+            return False
 
     def _format_structured_result(self, res):
         """Converts a dict result from a skill into a conversational string."""
