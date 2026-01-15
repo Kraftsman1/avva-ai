@@ -34,6 +34,15 @@ def test_toggle():
     else:
         print(f"     ❌ Failed to remove from DB.")
         
+    print("\n   - Testing 'ai.generate' scope...")
+    skill_manager.toggle_permission("ai.generate", True)
+    if "ai.generate" in storage.get_allowed_permissions():
+        print(f"     ✅ 'ai.generate' saved successfully.")
+    else:
+        print(f"     ❌ 'ai.generate' failed to save.")
+    # Clean up
+    skill_manager.toggle_permission("ai.generate", False)
+        
     if perm not in skill_manager.allowed_permissions:
         print(f"     ✅ Removed from session cache.")
     else:

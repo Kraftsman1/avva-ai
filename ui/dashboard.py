@@ -101,6 +101,7 @@ class PermissionWidget(Gtk.Box):
             "system.read": "System Information",
             "apps.launch": "App Launcher",
             "audio.record": "Microphone",
+            "ai.generate": "AI Brain / LLM Access",
         }
         
         for p in perms:
@@ -124,39 +125,71 @@ class PermissionWidget(Gtk.Box):
             
             self.pack_start(row, False, False, 0)
 
-class PermissionSettingsDialog(Gtk.Dialog):
+class SettingsDialog(Gtk.Dialog):
     def __init__(self, parent):
-        super().__init__(title="Security & Permissions", transient_for=parent, flags=0)
-        self.set_default_size(400, 500)
+        super().__init__(title="Settings & Configuration", transient_for=parent, flags=0)
+        self.set_default_size(500, 600)
         self.get_style_context().add_class("settings-dialog")
         
         box = self.get_content_area()
         box.set_spacing(10)
-        box.set_margin_top(20)
-        box.set_margin_bottom(20)
-        box.set_margin_start(20)
-        box.set_margin_end(20)
         
-        # Header
-        label = Gtk.Label()
-        label.set_markup("<span size='large' weight='bold'>Skill Permissions</span>")
-        label.set_xalign(0)
-        box.pack_start(label, False, False, 10)
+        # Tabs
+        notebook = Gtk.Notebook()
+        notebook.set_vexpand(True)
+        box.pack_start(notebook, True, True, 0)
         
-        # Scrolled window for permission list
+        # --- TAB 1: SECURITY ---
+        security_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        security_box.set_margin_top(15)
+        security_box.set_margin_bottom(15)
+        security_box.set_margin_start(15)
+        security_box.set_margin_end(15)
+        
+        tab_label1 = Gtk.Label(label="Security")
+        notebook.append_page(security_box, tab_label1)
+        
+        # Security Header
+        sec_header = Gtk.Label()
+        sec_header.set_markup("<span size='large' weight='bold'>Skill Permissions</span>")
+        sec_header.set_xalign(0)
+        security_box.pack_start(sec_header, False, False, 0)
+        
+        # Permissions List
         scrolled = Gtk.ScrolledWindow()
         scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        scrolled.set_min_content_height(350)
-        
         list_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
         scrolled.add(list_box)
-        box.pack_start(scrolled, True, True, 0)
+        security_box.pack_start(scrolled, True, True, 0)
         
-        # Load all permissions
+        self._populate_permissions(list_box)
+
+        # --- TAB 2: AI BRAIN ---
+        ai_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=15)
+        ai_box.set_margin_top(20)
+        ai_box.set_margin_bottom(20)
+        ai_box.set_margin_start(20)
+        ai_box.set_margin_end(20)
+        
+        tab_label2 = Gtk.Label(label="AI Brain")
+        notebook.append_page(ai_box, tab_label2)
+        
+        self._build_ai_config_tab(ai_box)
+        
+        self.show_all()
+
+    def _populate_permissions(self, list_box):
         from core.skill_manager import skill_manager
         all_perms = skill_manager.get_all_required_permissions()
         from core.persistence import storage
-        granted_perms = storage.get_allowed_permissions() # list of strings
+        granted_perms = storage.get_allowed_permissions()
+        
+        PERMISSION_LABELS = {
+            "system.read": "System Information",
+            "apps.launch": "App Launcher",
+            "audio.record": "Microphone Access",
+            "ai.generate": "AI Brain / LLM Access",
+        }
         
         for perm in all_perms:
             row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
@@ -166,39 +199,85 @@ class PermissionSettingsDialog(Gtk.Dialog):
             row.pack_start(icon, False, False, 0)
             
             vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
-            
-            PERMISSION_LABELS = {
-                "system.read": "System Information",
-                "apps.launch": "App Launcher",
-                "audio.record": "Microphone Access",
-            }
             display_text = PERMISSION_LABELS.get(perm, perm)
-            
             p_label = Gtk.Label(label=display_text)
             p_label.set_xalign(0)
-            p_label.get_style_context().add_class("settings-skill-label") # Reuse bold style
+            p_label.get_style_context().add_class("settings-skill-label")
             vbox.pack_start(p_label, False, False, 0)
-            
             row.pack_start(vbox, True, True, 0)
             
             sw = Gtk.Switch()
             sw.set_valign(Gtk.Align.CENTER)
-            
-            # Check if granted
-            is_granted = perm in granted_perms
-            sw.set_active(is_granted)
-            
-            sw.connect("state-set", self.on_switch_toggled, perm)
+            sw.set_active(perm in granted_perms)
+            sw.connect("state-set", self.on_perm_toggled, perm)
             row.pack_end(sw, False, False, 0)
-            
             list_box.pack_start(row, False, False, 0)
-            
-        self.show_all()
 
-    def on_switch_toggled(self, switch, state, perm):
+    def on_perm_toggled(self, switch, state, perm):
         from core.skill_manager import skill_manager
         skill_manager.toggle_permission(perm, state)
-        return False # Accept state change
+        return False
+
+    def _build_ai_config_tab(self, box):
+        # Provider
+        lbl = Gtk.Label(label="LLM Provider")
+        lbl.set_xalign(0)
+        lbl.get_style_context().add_class("settings-skill-label")
+        box.pack_start(lbl, False, False, 0)
+        
+        self.provider_combo = Gtk.ComboBoxText()
+        self.provider_combo.append_text("google")
+        self.provider_combo.append_text("ollama")
+        self.provider_combo.append_text("openai")
+        self.provider_combo.set_active_id(config.LLM_PROVIDER)
+        # Hack to set initial active text since set_active_id relies on ids which we implicitly used text for
+        if config.LLM_PROVIDER == "google": self.provider_combo.set_active(0)
+        elif config.LLM_PROVIDER == "ollama": self.provider_combo.set_active(1)
+        elif config.LLM_PROVIDER == "openai": self.provider_combo.set_active(2)
+        else: self.provider_combo.set_active(0)
+        box.pack_start(self.provider_combo, False, False, 0)
+
+        # Model Name
+        lbl = Gtk.Label(label="Model Name")
+        lbl.set_xalign(0)
+        lbl.get_style_context().add_class("settings-skill-label")
+        box.pack_start(lbl, False, False, 0)
+        self.model_entry = Gtk.Entry()
+        self.model_entry.set_text(config.MODEL_NAME)
+        box.pack_start(self.model_entry, False, False, 0)
+
+        # API Key
+        lbl = Gtk.Label(label="API Key (Leave blank for Ollama)")
+        lbl.set_xalign(0)
+        lbl.get_style_context().add_class("settings-skill-label")
+        box.pack_start(lbl, False, False, 0)
+        self.api_entry = Gtk.Entry()
+        self.api_entry.set_text(config.API_KEY if config.API_KEY else "")
+        self.api_entry.set_visibility(False)
+        self.api_entry.set_placeholder_text("sk-...")
+        box.pack_start(self.api_entry, False, False, 0)
+        
+        # Save Button
+        save_btn = Gtk.Button(label="Save & Reload Brain")
+        save_btn.get_style_context().add_class("send-btn")
+        save_btn.connect("clicked", self.on_save_config)
+        box.pack_end(save_btn, False, False, 10)
+
+    def on_save_config(self, btn):
+        provider = self.provider_combo.get_active_text()
+        model = self.model_entry.get_text()
+        key = self.api_entry.get_text()
+        
+        config.save_config("LLM_PROVIDER", provider)
+        config.save_config("LLM_MODEL", model)
+        config.save_config("LLM_API_KEY", key)
+        
+        from core.brain import brain
+        brain.reload_config()
+        
+        # Show success visual (simple change of label temporarily)
+        btn.set_label("✅ Saved!")
+        GLib.timeout_add(2000, lambda: btn.set_label("Save & Reload Brain"))
 
 class Bubble(Gtk.Box):
     def __init__(self, text, sender="user", data=None):
@@ -334,8 +413,8 @@ class Dashboard(Gtk.Window):
         
         self.show_all()
         
-        # Schedule Mic Check
-        GLib.idle_add(self.check_mic_permission)
+        # Schedule Startup Checks
+        GLib.idle_add(self.check_startup_permissions)
 
         # Input Area
         input_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
@@ -373,15 +452,16 @@ class Dashboard(Gtk.Window):
         self.thread = threading.Thread(target=self.voice_loop, daemon=True)
         self.thread.start()
 
-    def check_mic_permission(self):
-        """Checks if microphone access is granted on startup."""
+    def check_startup_permissions(self):
+        """Checks if critical permissions (Mic, AI) are granted on startup."""
         from core.persistence import storage
         from core.skill_manager import skill_manager
         
         allowed = storage.get_allowed_permissions()
+        
+        # 1. Microphone Check
         if "audio.record" not in allowed:
             print("🎙️ Requesting Microphone Access...")
-            # We use a custom 'AVVA' label for the requester
             granted = skill_manager._request_permission("AVVA Core", "audio.record")
             if granted:
                 skill_manager.toggle_permission("audio.record", True)
@@ -394,12 +474,25 @@ class Dashboard(Gtk.Window):
             if "audio.record" not in skill_manager.allowed_permissions:
                 skill_manager.allowed_permissions.append("audio.record")
 
+        # 2. AI Brain Check (LLM)
+        if "ai.generate" not in allowed:
+            print("🧠 Requesting AI/LLM Access...")
+            granted = skill_manager._request_permission("AVVA Core", "ai.generate")
+            if granted:
+                skill_manager.toggle_permission("ai.generate", True)
+                print("✅ AI Access granted.")
+            else:
+                print("❌ AI Access denied. LLM features disabled.")
+        else:
+            if "ai.generate" not in skill_manager.allowed_permissions:
+                skill_manager.allowed_permissions.append("ai.generate")
+
     def on_security_clicked(self, button):
-        dialog = PermissionSettingsDialog(self)
+        dialog = SettingsDialog(self)
         dialog.run()
         dialog.destroy()
-        # Re-sync mic state in case permission was toggled
-        self.check_mic_permission()
+        # Re-sync state
+        self.check_startup_permissions()
 
     def on_mic_toggled(self, button):
         self.listening_enabled = button.get_active()

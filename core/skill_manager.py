@@ -201,6 +201,7 @@ class SkillManager:
         
         # Core System Permissions
         master_list.add("audio.record")
+        master_list.add("ai.generate")
         
         return sorted(list(master_list))
 

@@ -61,6 +61,21 @@ class Brain:
         except Exception as e:
             print(f"Error initializing LLM ({self.llm_provider}): {e}")
 
+    def reload_config(self):
+        """Reloads configuration and re-initializes the LLM Backend."""
+        print("🧠 Brain: Reloading configuration...")
+        self.llm_provider = config.LLM_PROVIDER.lower()
+        self.api_key = config.API_KEY
+        self.model_name = config.MODEL_NAME
+        self.llm_ready = False
+        
+        # Re-init
+        if (self.api_key and self.api_key != "your_api_key_here") or self.llm_provider == "ollama":
+            self._init_llm()
+            print(f"🧠 Brain: Hot-swap complete. Provider: {self.llm_provider}, Model: {self.model_name}")
+        else:
+            print("🧠 Brain: Config reload failed - Missing API Key or invalid provider.")
+
     def process(self, command):
         """Tiered Intent Pipeline implementation."""
         if not command:
@@ -89,6 +104,12 @@ class Brain:
 
         # --- TIER 3: LLM Fallback (Reasoning/Extraction) ---
         if self.llm_ready:
+            # Check for AI Permission
+            allowed = storage.get_allowed_permissions()
+            if "ai.generate" not in allowed:
+                print("🔒 LLM skipped: 'ai.generate' permission not granted.")
+                return "I can't process that because AI access is currently disabled in Security Settings."
+
             llm_response = self._call_llm(command)
             
             # Extract JSON from LLM response
