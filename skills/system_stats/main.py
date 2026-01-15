@@ -1,4 +1,4 @@
-import psutil
+from core.ipc_bridge import ipc_bridge
 
 # The MANIFEST tells AVVA which functions are 'Tools' and how to describe them to the LLM.
 MANIFEST = {
@@ -17,16 +17,19 @@ MANIFEST = {
 }
 
 def get_system_stats():
-    cpu_usage = psutil.cpu_percent(interval=1)
-    memory = psutil.virtual_memory()
-    disk = psutil.disk_usage('/')
-    return (f"CPU: {cpu_usage}%, RAM: {memory.percent}%, Disk: {disk.percent}%")
+    res = ipc_bridge.call("get_system_stats")
+    if res.get("status") == "success":
+        return f"CPU: {res['cpu']}%, RAM: {res['ram']}%, Disk: {res['disk']}%"
+    return f"Error: {res.get('message')}"
 
 def get_cpu_info():
-    return f"CPU usage is currently {psutil.cpu_percent(interval=1)}%."
+    res = ipc_bridge.call("get_cpu_info")
+    return f"CPU usage is currently {res['usage']}%."
 
 def get_ram_info():
-    return f"You are using {psutil.virtual_memory().percent}% of your memory."
+    res = ipc_bridge.call("get_ram_info")
+    return f"You are using {res['usage']}% of your memory."
 
 def get_disk_info():
-    return f"Your disk is {psutil.disk_usage('/').percent}% full."
+    res = ipc_bridge.call("get_disk_info")
+    return f"Your disk is {res['usage']}% full."

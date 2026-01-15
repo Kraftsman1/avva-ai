@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import os
 import glob
 import subprocess
@@ -6,6 +5,7 @@ import shlex
 import shutil
 import rapidfuzz
 from pathlib import Path
+from core.ipc_bridge import ipc_bridge
 
 # -----------------------------
 # Assistant Tool Manifest
@@ -19,7 +19,7 @@ MANIFEST = {
 # -----------------------------
 # Constants & Aliases
 # -----------------------------
-FIELD_CODES = ["%U", "%u", "%F", "%f", "%i", "%c", "%k", "%n", "%m", "%v"]
+# FIELD_CODES and other constants removed as they are now in IPCBridge
 
 INTENT_ALIASES = {
     "browser": ["internet", "web", "browser", "navigator"],
@@ -42,19 +42,6 @@ SEARCH_DIRS = [
 # -----------------------------
 # Helpers
 # -----------------------------
-def clean_exec(exec_cmd):
-    """Strips Freedesktop field codes from the Exec command."""
-    for code in FIELD_CODES:
-        exec_cmd = exec_cmd.replace(code, "")
-    return exec_cmd.strip()
-
-def find_preferred_terminal():
-    """Finds an installed terminal emulator."""
-    candidates = ["com.system76.CosmicTerm", "gnome-terminal", "kgx", "konsole", "alacritty", "kitty", "xterm"]
-    for term in candidates:
-        if shutil.which(term):
-            return term
-    return "xterm"
 
 def fallback_path_executable(query):
     """Checks if the query is a direct command in $PATH."""
@@ -235,24 +222,13 @@ def launch_application(query):
         if not entry:
             return {"status": "not_found", "query": query}
 
-    try:
-        # 1. Clean the Exec command
-        clean_cmd = clean_exec(entry["exec"])
-        
-        # 2. Handle Terminal apps
-        if entry.get("terminal", False):
-            term = find_preferred_terminal()
-            # Most modern terminals support -e or -- to execute commands
-            subprocess.Popen([term, "-e"] + shlex.split(clean_cmd), 
-                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        else:
-            # GUI apps
-            subprocess.Popen(shlex.split(clean_cmd), 
-                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-
-        return {"status": "launched", "app": entry["name"]}
-    except Exception as e:
-        return {"status": "error", "message": f"Launch failed: {str(e)}"}
+    # Use IPC Bridge to launch
+    return ipc_bridge.call(
+        "launch_app",
+        exec_cmd=entry["exec"],
+        name=entry["name"],
+        terminal=entry.get("terminal", False)
+    )
 
 if __name__ == "__main__":
     tests = ["terminal", "browser", "calculator", "vlc", "code", "nautilus"]
