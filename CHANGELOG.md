@@ -2,6 +2,23 @@
 
 All notable changes to the AVVA project will be documented in this file.
 
+## [Unreleased] - 2026-01-15
+### Added
+- **Global Permissions**: Implemented a scope-based permission system (`system.read`, `audio.record`, `ai.generate`).
+- **LLM Access Control**: Added a "Privacy Mode" to disable LLM inference (`ai.generate` scope).
+- **Dynamic Configuration**: New "AI Brain" settings tab to hot-swap providers (Ollama, Google, OpenAI), models, and API keys.
+- **Persistent Settings**: Configuration is now saved to `~/.config/avva/config.json`.
+- **UI Polish**: 
+  - Dark mode support for Settings Dialog.
+  - Improved contrast for inputs and buttons.
+  - Consolidated "Security" and "AI Brain" into a tabbed interface.
+- **Onboarding**: First-run prompts for Microphone and AI access.
+
+### Changed
+- Refactored `PermissionSettingsDialog` into a tabbed `SettingsDialog`.
+- Normalized permission keys to human-readable labels in the UI.
+- Updated `core/brain.py` to support hot-reloading of LLM backends.
+
 ## [0.2.0] - 2026-01-15
 
 ### Added
