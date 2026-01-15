@@ -13,6 +13,7 @@ class Config:
     LLM_PROVIDER = os.getenv("LLM_PROVIDER", "google") # google, openai, ollama
     API_KEY = os.getenv("LLM_API_KEY", "")
     MODEL_NAME = os.getenv("LLM_MODEL", "gemini-1.5-flash")
+    OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
     
     # TTS Settings: gtts, piper, openai, elevenlabs
     TTS_ENGINE = os.getenv("TTS_ENGINE", "gtts")
