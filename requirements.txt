@@ -12,4 +12,5 @@ requests
 google-generativeai
 psutil
 rapidfuzz
+ollama
 # piper-tts  # We will handle Piper via binary or simpler wrapper to avoid build issues
