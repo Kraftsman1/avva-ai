@@ -63,6 +63,13 @@ def fallback_path_executable(query):
         return {"name": query, "exec": exe, "terminal": True, "keywords": []}
     return None
 
+def normalize_intent(query):
+    query_clean = query.lower().strip()
+    for canonical, aliases in INTENT_ALIASES.items():
+        if query_clean == canonical or query_clean in aliases:
+            return canonical
+    return query_clean
+
 # -----------------------------
 # Desktop Index
 # -----------------------------
@@ -86,6 +93,7 @@ class DesktopIndex:
             "name": "", 
             "exec": "", 
             "terminal": False,
+            "categories": [],
             "keywords": [], 
             "hidden": False
         }
@@ -106,8 +114,9 @@ class DesktopIndex:
                         data["exec"] = line.split("=", 1)[1].strip()
                     elif line.startswith("Terminal="):
                         data["terminal"] = line.split("=", 1)[1].strip().lower() == "true"
+                    elif line.startswith("Categories="):
+                        data["categories"] = [c.strip() for c in line.split("=", 1)[1].split(";") if c.strip()]
                     elif line.startswith("Keywords="):
-                        # Keywords are semicolon separated
                         kws = line.split("=", 1)[1].split(";")
                         data["keywords"].extend([k.strip().lower() for k in kws if k.strip()])
                     elif line.startswith("NoDisplay=true"):
@@ -120,38 +129,80 @@ class DesktopIndex:
         return data
 
     def resolve(self, query):
-        """Uses RapidFuzz to find the best matching application."""
+        """
+        Uses a weighted search across Name, Filename, Keywords, and Categories.
+        Expands generic intents (e.g., 'browser') into multiple search terms.
+        """
         query_clean = query.lower().strip()
+        intent = normalize_intent(query_clean)
         candidates = []
+
+        # Expansion terms for generic intents
+        INTENT_EXPANSION = {
+            "browser": ["firefox", "chrome", "chromium", "opera", "browser", "web", "navigator", "internet", "net"],
+            "terminal": ["terminal", "console", "shell", "emulator", "bash", "term", "cosmic-term"],
+            "calculator": ["calc", "math", "calculator", "spreadsheet", "excel"],
+            "editor": ["code", "editor", "text", "ide", "writing", "edit", "vscode"],
+            "files": ["files", "explorer", "manager", "nautilus", "thunar", "folder"],
+            "settings": ["settings", "config", "preferences", "control"],
+            "music": ["music", "audio", "player", "spotify", "rhythmbox"],
+            "video": ["video", "movie", "player", "vlc", "mpv", "totem"]
+        }
+
+        # Categories for generic intents (Primary + Fallback)
+        INTENT_CATS = {
+            "browser": ["WebBrowser", "Network"],
+            "terminal": ["TerminalEmulator", "System"],
+            "calculator": ["Calculator", "Office", "Spreadsheet"],
+            "editor": ["TextEditor", "IDE", "Development"],
+            "files": ["FileManager"],
+            "settings": ["Settings", "DesktopSettings"],
+            "music": ["Music", "Audio"],
+            "video": ["Video", "AudioVideo"]
+        }
 
         for entry in self.entries:
             name = entry["name"].lower()
             fname = os.path.basename(entry["path"]).lower()
+            kws = " ".join(entry["keywords"])
+            cats = entry["categories"]
             
-            # 1. Check for Intent Match (Manual boost)
-            intent_boost = 0
-            for canonical, aliases in INTENT_ALIASES.items():
-                if query_clean == canonical or query_clean in aliases:
-                    # If this app belongs to the category, boost it
-                    # We check keywords/names for category hints since user removed Category parsing
-                    if canonical in name or any(canonical in kw for kw in entry["keywords"]):
-                        intent_boost = 20
+            score = 0
+            
+            # 1. Direct Search Matching
+            search_terms = [query_clean]
+            if intent in INTENT_EXPANSION:
+                search_terms.extend(INTENT_EXPANSION[intent])
+            
+            for term in search_terms:
+                if term in name:
+                    score += 50
+                    if term == name: score += 50
+                    break
+                if term in fname:
+                    score += 40
+                    break
+            
+            # 2. Category Match
+            if intent in INTENT_CATS:
+                for idx, cat in enumerate(INTENT_CATS[intent]):
+                    if cat in cats:
+                        # Primary category (first in list) gets more boost
+                        score += 50 if idx == 0 else 25
+                        break
 
-            # 2. Fuzzy Matching with RapidFuzz
-            # WRatio is great for varying length strings and partial matches
-            score_name = rapidfuzz.fuzz.WRatio(query_clean, name)
-            score_file = rapidfuzz.fuzz.WRatio(query_clean, fname)
-            
-            max_kw_score = 0
-            for kw in entry["keywords"]:
-                kw_score = rapidfuzz.fuzz.WRatio(query_clean, kw)
-                if kw_score > max_kw_score:
-                    max_kw_score = kw_score
+            # 3. Keyword Match
+            for term in search_terms:
+                if term in kws:
+                    score += 20
+                    break
 
-            # Combined score
-            final_score = (score_name * 1.0) + (score_file * 0.5) + (max_kw_score * 0.3) + intent_boost
+            # 4. Fuzzy logic fallback
+            fuzzy_name = rapidfuzz.fuzz.token_set_ratio(query_clean, name)
             
-            if final_score > 60: # Threshold for a confident match
+            final_score = score + (fuzzy_name * 0.5)
+
+            if final_score > 40:
                 candidates.append((final_score, entry))
 
         candidates.sort(key=lambda x: x[0], reverse=True)

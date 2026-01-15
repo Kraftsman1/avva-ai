@@ -13,11 +13,14 @@ def main():
         if not command:
             continue
             
+        print(f"\nUser: {command}")
+            
         # 2. Process command (Brain)
         response = brain.process(command)
         
         # 3. Speak response
         if response:
+            print(f"AVVA: {response}")
             speak(response)
 
 if __name__ == "__main__":
