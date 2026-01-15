@@ -4,6 +4,7 @@ gi.require_version('Handy', '1')
 from gi.repository import Gtk, Gdk, GLib, Handy
 import threading
 import time
+import os
 
 # AVVA Core Imports
 from core.stt import listen
@@ -18,8 +19,10 @@ class Bubble(Gtk.Box):
         
         label = Gtk.Label(label=text)
         label.set_line_wrap(True)
-        label.set_max_width_chars(40)
+        label.set_line_wrap_mode(2)  # WORD_CHAR mode
+        label.set_max_width_chars(50)
         label.set_xalign(0 if sender == "avva" else 1)
+        label.set_selectable(True)  # Allow text selection
         
         box = Gtk.EventBox()
         box.add(label)
@@ -39,12 +42,15 @@ class Dashboard(Gtk.Window):
         Handy.init()
         
         # Window Config
-        self.set_default_size(450, 700)
+        self.set_default_size(480, 750)
         self.set_position(Gtk.WindowPosition.CENTER)
         
         # Load CSS
         style_provider = Gtk.CssProvider()
-        style_provider.load_from_path("ui/style.css")
+        # Resolve absolute path to style.css
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        css_path = os.path.join(base_dir, "ui", "style.css")
+        style_provider.load_from_path(css_path)
         Gtk.StyleContext.add_provider_for_screen(
             Gdk.Screen.get_default(),
             style_provider,
@@ -56,46 +62,97 @@ class Dashboard(Gtk.Window):
         self.main_box.get_style_context().add_class("main-layout")
         self.add(self.main_box)
 
-        # 1. The Orb
-        self.orb_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
-        self.orb_container.get_style_context().add_class("orb-container")
-        self.orb = Gtk.Box()
-        self.orb.set_size_request(80, 80)
-        self.orb.get_style_context().add_class("orb")
-        self.orb_container.pack_start(self.orb, True, False, 0)
-        self.main_box.pack_start(self.orb_container, False, False, 20)
+        # Header with title and controls
+        header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        header.get_style_context().add_class("header")
+        
+        title_label = Gtk.Label(label=config.NAME.upper())
+        title_label.get_style_context().add_class("title-label")
+        header.pack_start(title_label, False, False, 0)
+        
+        # Spacer
+        header.pack_start(Gtk.Box(), True, True, 0)
+        
+        # Mic toggle button
+        self.mic_toggle = Gtk.ToggleButton()
+        self.mic_toggle.set_active(True)
+        mic_icon = Gtk.Label(label="🎙")
+        self.mic_toggle.add(mic_icon)
+        self.mic_toggle.get_style_context().add_class("control-btn")
+        self.mic_toggle.connect("toggled", self.on_mic_toggled)
+        header.pack_end(self.mic_toggle, False, False, 0)
+        
+        self.main_box.pack_start(header, False, False, 0)
 
-        # 2. Conversation Stream
+        # The Orb with pulsing animation
+        self.orb_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
+        self.orb_container.get_style_context().add_class("orb-container")
+        
+        orb_wrapper = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        self.orb = Gtk.Box()
+        self.orb.set_size_request(100, 100)
+        self.orb.get_style_context().add_class("orb")
+        orb_wrapper.pack_start(self.orb, True, False, 0)
+        self.orb_container.pack_start(orb_wrapper, False, False, 0)
+        
+        # Status text below orb
+        self.orb_status = Gtk.Label(label="Ready")
+        self.orb_status.get_style_context().add_class("orb-status")
+        self.orb_container.pack_start(self.orb_status, False, False, 0)
+        
+        self.main_box.pack_start(self.orb_container, False, False, 15)
+
+        # Conversation Stream
         self.scroll = Gtk.ScrolledWindow()
         self.scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         self.scroll.get_style_context().add_class("chat-scroll")
         self.main_box.pack_start(self.scroll, True, True, 0)
 
-        self.chat_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
+        self.chat_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        self.chat_box.set_margin_top(10)
+        self.chat_box.set_margin_bottom(10)
         self.scroll.add(self.chat_box)
 
-        # 3. Bottom Bar
-        bottom_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-        bottom_bar.get_style_context().add_class("bottom-bar")
-        self.main_box.pack_start(bottom_bar, False, False, 15)
+        # Input Area
+        input_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        input_container.get_style_context().add_class("input-container")
+        self.main_box.pack_start(input_container, False, False, 0)
 
-        self.status_label = Gtk.Label(label="Initialized")
-        self.status_label.get_style_context().add_class("status-label")
-        bottom_bar.pack_start(self.status_label, True, False, 0)
-
-        # Entry for manual typing
         self.entry = Gtk.Entry()
-        self.entry.set_placeholder_text("Type a command...")
+        self.entry.set_placeholder_text("Type your message...")
+        self.entry.get_style_context().add_class("message-input")
         self.entry.connect("activate", self.on_entry_activated)
-        bottom_bar.pack_end(self.entry, True, True, 0)
+        input_container.pack_start(self.entry, True, True, 0)
+
+        # Send button
+        send_btn = Gtk.Button(label="➤")
+        send_btn.get_style_context().add_class("send-btn")
+        send_btn.connect("clicked", lambda _: self.on_entry_activated(self.entry))
+        input_container.pack_end(send_btn, False, False, 0)
+
+        # Footer status
+        footer = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        footer.get_style_context().add_class("footer")
+        
+        self.status_label = Gtk.Label(label="● Online")
+        self.status_label.get_style_context().add_class("status-label")
+        footer.pack_start(self.status_label, False, False, 0)
+        
+        self.main_box.pack_start(footer, False, False, 0)
 
         self.connect("destroy", Gtk.main_quit)
         self.show_all()
 
         # Start Background Listen Thread
         self.active = True
+        self.listening_enabled = True
         self.thread = threading.Thread(target=self.voice_loop, daemon=True)
         self.thread.start()
+
+    def on_mic_toggled(self, button):
+        self.listening_enabled = button.get_active()
+        if not self.listening_enabled:
+            self.update_orb(None)
 
     def add_message(self, text, sender="user"):
         GLib.idle_add(self._do_add_message, text, sender)
@@ -103,9 +160,14 @@ class Dashboard(Gtk.Window):
     def _do_add_message(self, text, sender):
         bubble = Bubble(text, sender)
         self.chat_box.pack_start(bubble, False, False, 0)
-        # Auto-scroll to bottom
+        
+        # Auto-scroll to bottom with slight delay for animation
+        GLib.timeout_add(50, self._scroll_to_bottom)
+
+    def _scroll_to_bottom(self):
         adj = self.scroll.get_vadjustment()
-        adj.set_value(adj.get_upper())
+        adj.set_value(adj.get_upper() - adj.get_page_size())
+        return False
 
     def update_orb(self, state):
         GLib.idle_add(self._do_update_orb, state)
@@ -120,14 +182,19 @@ class Dashboard(Gtk.Window):
         
         status_map = {
             "listening": "Listening...",
-            "thinking": "Thinking...",
+            "thinking": "Processing...",
             "speaking": "Speaking...",
-            None: "Idle"
+            None: "Ready"
         }
-        self.status_label.set_text(status_map.get(state, "Idle"))
+        status_text = status_map.get(state, "Ready")
+        self.orb_status.set_text(status_text)
+        
+        # Update footer status
+        online_status = "● Online" if self.listening_enabled else "○ Mic Off"
+        self.status_label.set_text(online_status)
 
     def on_entry_activated(self, entry):
-        text = entry.get_text()
+        text = entry.get_text().strip()
         if text:
             entry.set_text("")
             threading.Thread(target=self.process_command, args=(text,), daemon=True).start()
@@ -148,14 +215,16 @@ class Dashboard(Gtk.Window):
     def voice_loop(self):
         """Background thread for continuous voice interaction."""
         while self.active:
-            self.update_orb("listening")
-            command = listen()
-            
-            if command:
-                self.process_command(command)
+            if self.listening_enabled:
+                self.update_orb("listening")
+                command = listen()
+                
+                if command:
+                    self.process_command(command)
+                else:
+                    time.sleep(0.1)
             else:
-                # Brief pause to avoid CPU spiking if listen() returns instantly
-                time.sleep(0.1)
+                time.sleep(0.5)
 
 if __name__ == "__main__":
     win = Dashboard()
