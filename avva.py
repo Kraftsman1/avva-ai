@@ -1,3 +1,4 @@
+# MIT License - Copyright (c) 2026 Asigri Shamsu-Deen Al-Heyr
 from core.stt import listen
 from core.tts import speak
 from core.brain import brain

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# MIT License - Copyright (c) 2026 Asigri Shamsu-Deen Al-Heyr
 import sys
 import os
 

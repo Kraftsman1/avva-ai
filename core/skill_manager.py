@@ -1,3 +1,4 @@
+# MIT License - Copyright (c) 2026 Asigri Shamsu-Deen Al-Heyr
 import os
 import json
 import importlib.util
