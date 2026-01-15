@@ -226,15 +226,12 @@ class SettingsDialog(Gtk.Dialog):
         box.pack_start(lbl, False, False, 0)
         
         self.provider_combo = Gtk.ComboBoxText()
-        self.provider_combo.append_text("google")
-        self.provider_combo.append_text("ollama")
-        self.provider_combo.append_text("openai")
+        self.provider_combo.append("google", "google")
+        self.provider_combo.append("ollama", "ollama")
+        self.provider_combo.append("openai", "openai")
         self.provider_combo.set_active_id(config.LLM_PROVIDER)
-        # Hack to set initial active text since set_active_id relies on ids which we implicitly used text for
-        if config.LLM_PROVIDER == "google": self.provider_combo.set_active(0)
-        elif config.LLM_PROVIDER == "ollama": self.provider_combo.set_active(1)
-        elif config.LLM_PROVIDER == "openai": self.provider_combo.set_active(2)
-        else: self.provider_combo.set_active(0)
+        # set style color of combo box drop down/overlay to dark instead of white. the skill label doesn't make it visible
+        self.provider_combo.get_style_context().add_class("settings-combo-box")
         box.pack_start(self.provider_combo, False, False, 0)
 
         # Model Name

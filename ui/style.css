@@ -276,7 +276,7 @@ trough {
     min-width: 40px;
     min-height: 40px;
     border-radius: 8px;
-    background-color: #fafafa;
+    background-color: #fd0000;
     border: none;
     font-size: 18px;
     color: #09090b;
@@ -327,5 +327,129 @@ scrollbar slider:active {
 /* --- SELECTION --- */
 *:selected {
     background-color: #3f3f46;
+    color: #fafafa;
+}
+
+/* --- NOTEBOOK (TABS) - Shadcn Style --- */
+notebook {
+    background-color: #09090b;
+    /* Match main background */
+    border: none;
+    padding: 0;
+}
+
+notebook header {
+    background-color: #09090b;
+    border-bottom: 1px solid #27272a;
+    padding: 4px 8px 0 8px;
+}
+
+notebook tab {
+    padding: 8px 16px;
+    background-color: transparent;
+    color: #71717a;
+    /* Muted foreground */
+    font-weight: 500;
+    font-size: 13px;
+    border: none;
+    transition: all 0.2s ease;
+}
+
+notebook tab:hover {
+    color: #fafafa;
+    background-color: #18181b;
+}
+
+notebook tab:checked {
+    color: #fafafa;
+    background-color: transparent;
+    /* Bottom indicator line */
+    box-shadow: inset 0 -2px 0 #fafafa;
+}
+
+/* Remove the "gap" or background in the stack area */
+notebook stack {
+    background-color: #09090b;
+    padding: 16px;
+}
+
+/* --- SETTINGS DIALOG & CONTROLS --- */
+.settings-dialog {
+    background-color: #09090b;
+    color: #fafafa;
+    border-radius: 12px;
+    border: 1px solid #27272a;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+}
+
+/* Row styling to look like Shadcn Cards/List items */
+.settings-row {
+    background-color: #09090b;
+    padding: 16px;
+    border-bottom: 1px solid #27272a;
+    margin-bottom: 0;
+}
+
+.settings-row:last-child {
+    border-bottom: none;
+}
+
+.settings-skill-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fafafa;
+}
+
+/* --- COMBOBOX DROPDOWN FIXES --- */
+.settings-combo-box {
+    background-color: #09090b;
+    color: #fafafa;
+    border: 1px solid #27272a;
+}
+
+.settings-combo-box button {
+    color: #fafafa;
+    background-color: transparent;
+    box-shadow: none;
+    border: none;
+}
+
+/* The actual dropdown popup window */
+.settings-combo-box window {
+    background-color: #18181b;
+    border: 1px solid #27272a;
+    color: #fafafa;
+}
+
+/* The list inside the popup */
+.settings-combo-box list {
+    background-color: #18181b;
+    color: #fafafa;
+}
+
+.settings-combo-box cell {
+    background-color: #18181b;
+    color: #fafafa;
+    padding: 8px;
+}
+
+.settings-combo-box cell:selected {
+    background-color: #3f3f46;
+    color: #ffffff;
+}
+
+/* --- BUTTON FIXES --- */
+.settings-dialog button {
+    background-color: #18181b;
+    color: #fafafa;
+    border: 1px solid #27272a;
+}
+
+.settings-dialog button:hover {
+    background-color: #27272a;
+    color: #ffffff;
+}
+
+.settings-dialog button label {
     color: #fafafa;
 }
