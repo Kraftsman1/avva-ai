@@ -157,6 +157,39 @@ trough {
     /* Darker Indigo */
 }
 
+/* --- APP WIDGET --- */
+.app-widget {
+    background-color: rgba(255, 255, 255, 0.05);
+    padding: 12px;
+    border-radius: 8px;
+    min-width: 250px;
+}
+
+.widget-label-large {
+    font-size: 15px;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.widget-status {
+    font-size: 12px;
+    color: #a1a1aa;
+}
+
+.app-launch-btn {
+    background-color: #3f3f46;
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    padding: 4px 12px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.app-launch-btn:hover {
+    background-color: #52525b;
+}
+
 /* --- INPUT AREA --- */
 .input-container {
     padding: 16px 24px;

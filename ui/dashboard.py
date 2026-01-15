@@ -45,6 +45,45 @@ class StatsWidget(Gtk.Box):
         
         self.pack_start(row, False, False, 0)
 
+class AppWidget(Gtk.Box):
+    def __init__(self, name, icon, exec_cmd=None):
+        super().__init__(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+        self.get_style_context().add_class("app-widget")
+        self.set_margin_top(5)
+        self.set_margin_bottom(5)
+        self.exec_cmd = exec_cmd
+        self.app_name = name
+        
+        # Icon
+        image = Gtk.Image.new_from_icon_name(icon, Gtk.IconSize.LARGE_TOOLBAR)
+        image.set_pixel_size(48)
+        self.pack_start(image, False, False, 0)
+        
+        # Details
+        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        label = Gtk.Label(label=name)
+        label.set_xalign(0)
+        label.get_style_context().add_class("widget-label-large")
+        vbox.pack_start(label, False, False, 0)
+        
+        status = Gtk.Label(label="Ready to Launch")
+        status.set_xalign(0)
+        status.get_style_context().add_class("widget-status")
+        vbox.pack_start(status, False, False, 0)
+        
+        self.pack_start(vbox, True, True, 0)
+        
+        # Launch Button
+        btn = Gtk.Button(label="Open")
+        btn.get_style_context().add_class("app-launch-btn")
+        btn.connect("clicked", self.on_launch_clicked)
+        self.pack_end(btn, False, False, 0)
+
+    def on_launch_clicked(self, button):
+        if self.exec_cmd:
+            from core.ipc_bridge import ipc_bridge
+            ipc_bridge.call("launch_app", exec_cmd=self.exec_cmd, name=self.app_name)
+
 class Bubble(Gtk.Box):
     def __init__(self, text, sender="user", data=None):
         super().__init__(orientation=Gtk.Orientation.HORIZONTAL)
@@ -64,6 +103,13 @@ class Bubble(Gtk.Box):
         # Handle Rich Widgets
         if data and data.get("type") == "system_stats":
             widget = StatsWidget(data['cpu'], data['ram'], data['disk'])
+            vbox.pack_start(widget, False, False, 0)
+        elif data and data.get("type") == "app_launcher":
+            widget = AppWidget(
+                data.get("app_name", "App"), 
+                data.get("icon", "system-run"),
+                data.get("exec_cmd")
+            )
             vbox.pack_start(widget, False, False, 0)
             
         box = Gtk.EventBox()

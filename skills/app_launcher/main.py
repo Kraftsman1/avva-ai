@@ -106,6 +106,8 @@ class DesktopIndex:
                     elif line.startswith("Keywords="):
                         kws = line.split("=", 1)[1].split(";")
                         data["keywords"].extend([k.strip().lower() for k in kws if k.strip()])
+                    elif line.startswith("Icon="):
+                        data["icon"] = line.split("=", 1)[1].strip()
                     elif line.startswith("NoDisplay=true"):
                         data["hidden"] = True
         except Exception:
@@ -223,12 +225,20 @@ def launch_application(query):
             return {"status": "not_found", "query": query}
 
     # Use IPC Bridge to launch
-    return ipc_bridge.call(
+    res = ipc_bridge.call(
         "launch_app",
         exec_cmd=entry["exec"],
         name=entry["name"],
         terminal=entry.get("terminal", False)
     )
+    
+    # Add metadata for UI
+    if res.get("status") == "launched":
+        res["type"] = "app_launcher"
+        res["icon"] = entry.get("icon", "system-run")
+        res["app_name"] = entry["name"]
+    
+    return res
 
 if __name__ == "__main__":
     tests = ["terminal", "browser", "calculator", "vlc", "code", "nautilus"]

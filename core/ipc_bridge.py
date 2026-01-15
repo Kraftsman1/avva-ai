@@ -66,7 +66,7 @@ class IPCBridge:
                                  stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                                  start_new_session=True)
                 
-            return {"status": "launched", "app": name}
+            return {"status": "launched", "app": name, "exec_cmd": clean_cmd}
         except Exception as e:
             return {"status": "error", "message": f"Launch failed: {str(e)}"}
 
