@@ -12,6 +12,6 @@
     },
     "entry_point": "main.py",
     "permissions": [
-        "sys_info_read"
+        "system.read"
     ]
 }

@@ -19,9 +19,8 @@ def get_active_permissions():
         "permissions": []
     }
     
-    for skill, perm in perms:
+    for perm in perms:
         result["permissions"].append({
-            "skill": skill,
             "permission": perm
         })
         

@@ -97,6 +97,12 @@ class PermissionWidget(Gtk.Box):
         header.get_style_context().add_class("widget-header")
         self.pack_start(header, False, False, 4)
         
+        PERMISSION_LABELS = {
+            "system.read": "System Information",
+            "apps.launch": "App Launcher",
+            "audio.record": "Microphone",
+        }
+        
         for p in perms:
             row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
             row.get_style_context().add_class("permission-row")
@@ -104,7 +110,10 @@ class PermissionWidget(Gtk.Box):
             icon = Gtk.Image.new_from_icon_name("security-high-symbolic", Gtk.IconSize.MENU)
             row.pack_start(icon, False, False, 0)
             
-            label = Gtk.Label(label=f"{p['skill']} → {p['permission']}")
+            raw_perm = p['permission']
+            display_text = PERMISSION_LABELS.get(raw_perm, raw_perm)
+            
+            label = Gtk.Label(label=display_text)
             label.set_xalign(0)
             label.get_style_context().add_class("permission-label")
             row.pack_start(label, True, True, 0)
@@ -147,9 +156,9 @@ class PermissionSettingsDialog(Gtk.Dialog):
         from core.skill_manager import skill_manager
         all_perms = skill_manager.get_all_required_permissions()
         from core.persistence import storage
-        granted_perms = storage.get_allowed_permissions() # list of (skill, perm)
+        granted_perms = storage.get_allowed_permissions() # list of strings
         
-        for skill, perm in all_perms:
+        for perm in all_perms:
             row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
             row.get_style_context().add_class("settings-row")
             
@@ -157,14 +166,17 @@ class PermissionSettingsDialog(Gtk.Dialog):
             row.pack_start(icon, False, False, 0)
             
             vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
-            s_label = Gtk.Label(label=skill.capitalize())
-            s_label.set_xalign(0)
-            s_label.get_style_context().add_class("settings-skill-label")
-            vbox.pack_start(s_label, False, False, 0)
             
-            p_label = Gtk.Label(label=perm)
+            PERMISSION_LABELS = {
+                "system.read": "System Information",
+                "apps.launch": "App Launcher",
+                "audio.record": "Microphone Access",
+            }
+            display_text = PERMISSION_LABELS.get(perm, perm)
+            
+            p_label = Gtk.Label(label=display_text)
             p_label.set_xalign(0)
-            p_label.get_style_context().add_class("settings-perm-label")
+            p_label.get_style_context().add_class("settings-skill-label") # Reuse bold style
             vbox.pack_start(p_label, False, False, 0)
             
             row.pack_start(vbox, True, True, 0)
@@ -173,19 +185,19 @@ class PermissionSettingsDialog(Gtk.Dialog):
             sw.set_valign(Gtk.Align.CENTER)
             
             # Check if granted
-            is_granted = (skill, perm) in granted_perms
+            is_granted = perm in granted_perms
             sw.set_active(is_granted)
             
-            sw.connect("state-set", self.on_switch_toggled, skill, perm)
+            sw.connect("state-set", self.on_switch_toggled, perm)
             row.pack_end(sw, False, False, 0)
             
             list_box.pack_start(row, False, False, 0)
             
         self.show_all()
 
-    def on_switch_toggled(self, switch, state, skill, perm):
+    def on_switch_toggled(self, switch, state, perm):
         from core.skill_manager import skill_manager
-        skill_manager.toggle_permission(skill, perm, state)
+        skill_manager.toggle_permission(perm, state)
         return False # Accept state change
 
 class Bubble(Gtk.Box):
@@ -308,13 +320,22 @@ class Dashboard(Gtk.Window):
         # Conversation Stream
         self.scroll = Gtk.ScrolledWindow()
         self.scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        self.scroll.get_style_context().add_class("chat-scroll")
-        self.main_box.pack_start(self.scroll, True, True, 0)
-
-        self.chat_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        self.chat_box.set_margin_top(10)
-        self.chat_box.set_margin_bottom(10)
+        self.scroll.set_vexpand(True)
+        self.scroll.get_style_context().add_class("conversation-area")
+        
+        self.chat_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        self.chat_box.set_margin_start(15)
+        self.chat_box.set_margin_end(15)
+        self.chat_box.set_margin_top(15)
+        self.chat_box.set_margin_bottom(15)
         self.scroll.add(self.chat_box)
+        
+        self.main_box.pack_start(self.scroll, True, True, 0)
+        
+        self.show_all()
+        
+        # Schedule Mic Check
+        GLib.idle_add(self.check_mic_permission)
 
         # Input Area
         input_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
@@ -352,10 +373,33 @@ class Dashboard(Gtk.Window):
         self.thread = threading.Thread(target=self.voice_loop, daemon=True)
         self.thread.start()
 
+    def check_mic_permission(self):
+        """Checks if microphone access is granted on startup."""
+        from core.persistence import storage
+        from core.skill_manager import skill_manager
+        
+        allowed = storage.get_allowed_permissions()
+        if "audio.record" not in allowed:
+            print("🎙️ Requesting Microphone Access...")
+            # We use a custom 'AVVA' label for the requester
+            granted = skill_manager._request_permission("AVVA Core", "audio.record")
+            if granted:
+                skill_manager.toggle_permission("audio.record", True)
+                self.mic_toggle.set_active(True)
+                print("✅ Microphone access granted.")
+            else:
+                self.mic_toggle.set_active(False)
+                print("❌ Microphone access denied.")
+        else:
+            if "audio.record" not in skill_manager.allowed_permissions:
+                skill_manager.allowed_permissions.append("audio.record")
+
     def on_security_clicked(self, button):
         dialog = PermissionSettingsDialog(self)
         dialog.run()
         dialog.destroy()
+        # Re-sync mic state in case permission was toggled
+        self.check_mic_permission()
 
     def on_mic_toggled(self, button):
         self.listening_enabled = button.get_active()

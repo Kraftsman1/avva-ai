@@ -7,14 +7,14 @@ def test_toggle():
     print("🧪 Testing Permission Toggling...")
     
     skill = "test_skill"
-    perm = "test_perm"
+    perm = "system.read"
     
     # 1. Toggle ON
     print(f"   - Toggling {perm} ON...")
-    skill_manager.toggle_permission(skill, perm, True)
+    skill_manager.toggle_permission(perm, True)
     
     granted = storage.get_allowed_permissions()
-    if (skill, perm) in granted:
+    if perm in granted:
         print(f"     ✅ Saved to DB.")
     else:
         print(f"     ❌ Failed to save to DB.")
@@ -26,10 +26,10 @@ def test_toggle():
         
     # 2. Toggle OFF
     print(f"   - Toggling {perm} OFF...")
-    skill_manager.toggle_permission(skill, perm, False)
+    skill_manager.toggle_permission(perm, False)
     
     granted = storage.get_allowed_permissions()
-    if (skill, perm) not in granted:
+    if perm not in granted:
         print(f"     ✅ Removed from DB.")
     else:
         print(f"     ❌ Failed to remove from DB.")

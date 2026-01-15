@@ -15,11 +15,7 @@ class SkillManager:
         self.regex_intents = []  # list of (compiled_regex, execution_template)
         
         # Load persistent permissions
-        self.allowed_permissions = [] # No hardcoded defaults, let the user decide
-        stored_perms = storage.get_allowed_permissions()
-        for _, perm in stored_perms:
-            if perm not in self.allowed_permissions:
-                self.allowed_permissions.append(perm)
+        self.allowed_permissions = storage.get_allowed_permissions()
         
         self.load_all_skills()
 
@@ -149,10 +145,12 @@ class SkillManager:
             for perm in required_perms:
                 if perm not in self.allowed_permissions:
                     print(f"🔒 Skill '{tool_name}' requesting permission '{perm}'...")
+                    # We check if this PERMISSION is granted globally
                     if self._request_permission(tool_name, perm):
-                        self.allowed_permissions.append(perm)
-                        storage.save_permission(tool_name, perm)
-                        print(f"✅ Permission '{perm}' granted and saved to DB.")
+                        if perm not in self.allowed_permissions:
+                            self.allowed_permissions.append(perm)
+                        storage.save_permission(perm) # Global save
+                        print(f"✅ Permission '{perm}' granted globally and saved to DB.")
                     else:
                         return f"❌ Permission Denied: Skill '{tool_name}' requires '{perm}' which was rejected."
 
@@ -196,32 +194,26 @@ class SkillManager:
 
     def get_all_required_permissions(self):
         """Aggregates all unique permissions required by currently loaded skills."""
-        master_list = [] # List of (skill_name, permission)
-        for tool, perms in self.tool_permissions.items():
+        master_list = set()
+        for perms in self.tool_permissions.values():
             for p in perms:
-                master_list.append((tool, p))
-        return master_list
+                master_list.add(p)
+        
+        # Core System Permissions
+        master_list.add("audio.record")
+        
+        return sorted(list(master_list))
 
-    def toggle_permission(self, skill_name, permission, granted):
-        """Updates session cache and persistence for a specific permission."""
+    def toggle_permission(self, permission, granted):
+        """Updates session cache and persistence for a specific global permission."""
         if granted:
             if permission not in self.allowed_permissions:
                 self.allowed_permissions.append(permission)
-            storage.save_permission(skill_name, permission)
+            storage.save_permission(permission)
         else:
-            # We only remove from allowed_permissions if NO other skill requires it
-            # This is a simplified logic – ideally permissions should be per-skill
-            storage.revoke_permission(skill_name, permission)
-            
-            # Re-check if we still need this permission for any other skill
-            still_needed = False
-            for s, p in storage.get_allowed_permissions():
-                if p == permission:
-                    still_needed = True
-                    break
-            
-            if not still_needed and permission in self.allowed_permissions:
+            if permission in self.allowed_permissions:
                 self.allowed_permissions.remove(permission)
+            storage.revoke_permission(permission)
 
     def _format_structured_result(self, res):
         """Converts a dict result from a skill into a conversational string."""

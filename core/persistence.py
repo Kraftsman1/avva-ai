@@ -16,14 +16,11 @@ class Persistence:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
-        # Table for persistent permissions
+        # Table for global permissions
         cursor.execute('''
-            CREATE TABLE IF NOT EXISTS permissions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                skill_name TEXT,
-                permission TEXT,
-                granted_at DATETIME,
-                UNIQUE(skill_name, permission)
+            CREATE TABLE IF NOT EXISTS global_permissions (
+                permission TEXT PRIMARY KEY,
+                granted_at DATETIME
             )
         ''')
         
@@ -41,37 +38,38 @@ class Persistence:
         conn.commit()
         conn.close()
 
-    def save_permission(self, skill_name, permission):
-        """Saves a granted permission to the database."""
+    def save_permission(self, permission):
+        """Saves a globally granted permission to the database."""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         try:
             cursor.execute('''
-                INSERT OR IGNORE INTO permissions (skill_name, permission, granted_at)
-                VALUES (?, ?, ?)
-            ''', (skill_name, permission, datetime.datetime.now()))
+                INSERT OR IGNORE INTO global_permissions (permission, granted_at)
+                VALUES (?, ?)
+            ''', (permission, datetime.datetime.now()))
             conn.commit()
         finally:
             conn.close()
 
-    def revoke_permission(self, skill_name, permission):
-        """Removes a granted permission from the database."""
+    def revoke_permission(self, permission):
+        """Removes a globally granted permission from the database."""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         try:
             cursor.execute('''
-                DELETE FROM permissions WHERE skill_name = ? AND permission = ?
-            ''', (skill_name, permission))
+                DELETE FROM global_permissions WHERE permission = ?
+            ''', (permission,))
             conn.commit()
         finally:
             conn.close()
 
     def get_allowed_permissions(self):
-        """Returns a list of all granted (skill, permission) tuples."""
+        """Returns a list of all globally granted permissions."""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
-        cursor.execute('SELECT skill_name, permission FROM permissions')
-        perms = cursor.fetchall()
+        cursor.execute('SELECT permission FROM global_permissions')
+        # Returns list of strings [perm1, perm2]
+        perms = [row[0] for row in cursor.fetchall()]
         conn.close()
         return perms
 

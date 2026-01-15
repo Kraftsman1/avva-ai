@@ -1,0 +1,16 @@
+{
+    "id": "core.security",
+    "name": "Security",
+    "description": "Manage and view system permissions.",
+    "version": "1.0.0",
+    "author": "AVVA Core",
+    "intents": {
+        "regex:(?:show|list|view) permissions": "get_active_permissions()",
+        "regex:(?:security status|what can you do)": "get_active_permissions()",
+        "permissions": "get_active_permissions()"
+    },
+    "entry_point": "main.py",
+    "permissions": [
+        "system.read"
+    ]
+}
