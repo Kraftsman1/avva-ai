@@ -2,6 +2,29 @@
 
 All notable changes to the AVVA project will be documented in this file.
 
+## [Unreleased] - 2026-01-18
+### Added
+- **Configurable LLM Brains System**: Complete architectural overhaul of LLM integration.
+  - **Brain Interface**: Standardized interface for all LLM providers with capability system, privacy levels, and health checks.
+  - **Brain Manager**: Central orchestrator for Brain registration, selection, and fallback handling.
+  - **Brain Providers**: 
+    - Rules Brain (deterministic fallback, no LLM required)
+    - Ollama Brain (local LLM with JSON mode and vision support)
+    - LM Studio Brain (local OpenAI-compatible API)
+    - Google Gemini Brain (cloud, tool calling, vision, cost estimation)
+    - OpenAI Brain (cloud, JSON mode, streaming, usage tracking)
+    - Claude Brain (cloud, tool calling, vision, cost tracking)
+  - **Context Filtering**: Privacy-aware context redaction based on Brain privacy level (local/trusted/external cloud).
+  - **Brain Selection Logic**: Context-aware routing (sensitive requests → local Brains), automatic fallback chain.
+  - **Database Schema**: New tables for Brain configs, capabilities, and usage tracking.
+  - **Legacy Migration**: Automatic migration from old `config.py` LLM settings to new Brain system.
+  - **Backward Compatibility**: Refactored `brain.py` as facade maintaining existing API.
+
+### Changed
+- Refactored `core/brain.py` to delegate to new Brain Manager system.
+- Extended `core/persistence.py` with Brain configuration methods and usage tracking.
+- Updated `requirements.txt` to include `anthropic` package for Claude support.
+
 ## [Unreleased] - 2026-01-15
 ### Added
 - **Global Permissions**: Implemented a scope-based permission system (`system.read`, `audio.record`, `ai.generate`).
