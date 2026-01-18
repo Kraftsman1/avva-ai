@@ -164,21 +164,22 @@ class SettingsDialog(Gtk.Dialog):
         
         self._populate_permissions(list_box)
 
-        # --- TAB 2: AI BRAIN ---
-        ai_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=15)
-        ai_box.set_margin_top(20)
-        ai_box.set_margin_bottom(20)
-        ai_box.set_margin_start(20)
-        ai_box.set_margin_end(20)
+        # --- TAB 2: BRAINS ---
+        brains_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=15)
+        brains_box.set_margin_top(20)
+        brains_box.set_margin_bottom(20)
+        brains_box.set_margin_start(20)
+        brains_box.set_margin_end(20)
         
-        tab_label2 = Gtk.Label(label="AI Brain")
-        notebook.append_page(ai_box, tab_label2)
+        tab_label2 = Gtk.Label(label="Brains")
+        notebook.append_page(brains_box, tab_label2)
         
-        self._build_ai_config_tab(ai_box)
+        self._build_brains_tab(brains_box)
         
         self.show_all()
 
     def _populate_permissions(self, list_box):
+        """Populate the permissions list in the Security tab."""
         from core.skill_manager import skill_manager
         all_perms = skill_manager.get_all_required_permissions()
         from core.persistence import storage
@@ -214,67 +215,427 @@ class SettingsDialog(Gtk.Dialog):
             list_box.pack_start(row, False, False, 0)
 
     def on_perm_toggled(self, switch, state, perm):
+        """Handle permission toggle."""
         from core.skill_manager import skill_manager
         skill_manager.toggle_permission(perm, state)
         return False
 
-    def _build_ai_config_tab(self, box):
-        # Provider
-        lbl = Gtk.Label(label="LLM Provider")
+    def _build_brains_tab(self, box):
+        """Build the Brain Manager UI tab."""
+        from core.brain_manager import brain_manager
+        
+        # Header
+        header = Gtk.Label()
+        header.set_markup("<span size='large' weight='bold'>LLM Brain Manager</span>")
+        header.set_xalign(0)
+        box.pack_start(header, False, False, 0)
+        
+        # Description
+        desc = Gtk.Label(label="Configure which LLM provider AVA uses for reasoning.")
+        desc.set_xalign(0)
+        desc.set_line_wrap(True)
+        desc.get_style_context().add_class("widget-status")
+        box.pack_start(desc, False, False, 0)
+        
+        # Separator
+        sep = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+        box.pack_start(sep, False, False, 10)
+        
+        # Active Brain Section
+        active_label = Gtk.Label()
+        active_label.set_markup("<b>Active Brain</b>")
+        active_label.set_xalign(0)
+        box.pack_start(active_label, False, False, 0)
+        
+        # Active Brain Selector
+        self.active_brain_combo = Gtk.ComboBoxText()
+        self.active_brain_combo.get_style_context().add_class("settings-combo-box")
+        
+        # Populate with available Brains
+        all_brains = brain_manager.get_all_brains()
+        active_brain = brain_manager.get_active_brain()
+        
+        for brain in all_brains:
+            privacy_badge = {"local": "🔒", "trusted_cloud": "☁️", "external_cloud": "🌐"}.get(
+                brain.get_privacy_level().value, ""
+            )
+            display_name = f"{privacy_badge} {brain.name}"
+            self.active_brain_combo.append(brain.id, display_name)
+            
+        if active_brain:
+            self.active_brain_combo.set_active_id(active_brain.id)
+        
+        self.active_brain_combo.connect("changed", self.on_active_brain_changed)
+        box.pack_start(self.active_brain_combo, False, False, 0)
+        
+        # Rules-only mode toggle
+        rules_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        rules_label = Gtk.Label(label="Rules-Only Mode (Disable all LLMs)")
+        rules_label.set_xalign(0)
+        rules_box.pack_start(rules_label, True, True, 0)
+        
+        self.rules_only_switch = Gtk.Switch()
+        self.rules_only_switch.set_active(brain_manager.rules_only_mode)
+        self.rules_only_switch.connect("state-set", self.on_rules_only_toggled)
+        rules_box.pack_end(self.rules_only_switch, False, False, 0)
+        box.pack_start(rules_box, False, False, 5)
+        
+        # Separator
+        sep2 = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+        box.pack_start(sep2, False, False, 10)
+        
+        # Installed Brains Section
+        installed_label = Gtk.Label()
+        installed_label.set_markup("<b>Installed Brains</b>")
+        installed_label.set_xalign(0)
+        box.pack_start(installed_label, False, False, 0)
+        
+        # Scrolled window for Brains list
+        scrolled = Gtk.ScrolledWindow()
+        scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        scrolled.set_min_content_height(200)
+        
+        self.brains_list_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        scrolled.add(self.brains_list_box)
+        box.pack_start(scrolled, True, True, 0)
+        
+        self._populate_brains_list()
+        
+        # Add Brain Button
+        add_btn = Gtk.Button(label="+ Add Brain")
+        add_btn.get_style_context().add_class("send-btn")
+        add_btn.connect("clicked", self.on_add_brain_clicked)
+        box.pack_end(add_btn, False, False, 0)
+
+    def _populate_brains_list(self):
+        """Populate the list of installed Brains."""
+        from core.brain_manager import brain_manager
+        
+        # Clear existing
+        for child in self.brains_list_box.get_children():
+            self.brains_list_box.remove(child)
+        
+        all_brains = brain_manager.get_all_brains()
+        
+        for brain in all_brains:
+            brain_row = self._create_brain_row(brain)
+            self.brains_list_box.pack_start(brain_row, False, False, 0)
+        
+        self.brains_list_box.show_all()
+    
+    def _create_brain_row(self, brain):
+        """Create a row widget for a Brain."""
+        row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        row.get_style_context().add_class("settings-row")
+        
+        # Privacy badge icon
+        privacy_level = brain.get_privacy_level().value
+        privacy_icons = {
+            "local": "🔒",
+            "trusted_cloud": "☁️",
+            "external_cloud": "🌐"
+        }
+        icon_label = Gtk.Label(label=privacy_icons.get(privacy_level, "❓"))
+        row.pack_start(icon_label, False, False, 0)
+        
+        # Brain info
+        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        
+        name_label = Gtk.Label(label=brain.name)
+        name_label.set_xalign(0)
+        name_label.get_style_context().add_class("settings-skill-label")
+        vbox.pack_start(name_label, False, False, 0)
+        
+        # Provider and status
+        health = brain.health_check()
+        status_text = f"{brain.provider} • {health.status.value}"
+        status_label = Gtk.Label(label=status_text)
+        status_label.set_xalign(0)
+        status_label.get_style_context().add_class("widget-status")
+        vbox.pack_start(status_label, False, False, 0)
+        
+        row.pack_start(vbox, True, True, 0)
+        
+        # Status indicator
+        status_icon = "✓" if health.status.value == "available" else "⚠"
+        status_indicator = Gtk.Label(label=status_icon)
+        status_indicator.get_style_context().add_class("permission-status-tag")
+        row.pack_end(status_indicator, False, False, 0)
+        
+        # Test button (only for non-rules Brains)
+        if brain.id != "rules":
+            test_btn = Gtk.Button(label="Test")
+            test_btn.get_style_context().add_class("app-launch-btn")
+            test_btn.connect("clicked", self.on_test_brain_clicked, brain)
+            row.pack_end(test_btn, False, False, 5)
+        
+        return row
+    
+    def on_active_brain_changed(self, combo):
+        """Handle active Brain selection change."""
+        from core.brain_manager import brain_manager
+        brain_id = combo.get_active_id()
+        if brain_id:
+            brain_manager.set_active_brain(brain_id)
+            # Reload Brain system
+            from core.brain import brain
+            brain.reload_config()
+            print(f"✅ Active Brain changed to: {brain_id}")
+    
+    def on_rules_only_toggled(self, switch, state):
+        """Handle rules-only mode toggle."""
+        from core.brain_manager import brain_manager
+        brain_manager.set_rules_only_mode(state)
+        
+        # Disable/enable active Brain combo
+        self.active_brain_combo.set_sensitive(not state)
+        return False
+    
+    def on_test_brain_clicked(self, button, brain):
+        """Test a Brain's health."""
+        button.set_label("Testing...")
+        button.set_sensitive(False)
+        
+        def test_thread():
+            health = brain.health_check()
+            
+            def show_result():
+                # Show dialog with result
+                dialog = Gtk.MessageDialog(
+                    transient_for=self,
+                    flags=0,
+                    message_type=Gtk.MessageType.INFO if health.status.value == "available" else Gtk.MessageType.WARNING,
+                    buttons=Gtk.ButtonsType.OK,
+                    text=f"Brain Test: {brain.name}"
+                )
+                dialog.format_secondary_text(
+                    f"Status: {health.status.value}\n"
+                    f"Message: {health.message}\n"
+                    + (f"Latency: {health.latency_ms:.0f}ms" if health.latency_ms else "")
+                )
+                dialog.run()
+                dialog.destroy()
+                
+                button.set_label("Test")
+                button.set_sensitive(True)
+                
+                # Refresh the list
+                self._populate_brains_list()
+            
+            GLib.idle_add(show_result)
+        
+        threading.Thread(target=test_thread, daemon=True).start()
+    
+    def on_add_brain_clicked(self, button):
+        """Show dialog to add a new Brain."""
+        dialog = AddBrainDialog(self)
+        response = dialog.run()
+        
+        if response == Gtk.ResponseType.OK:
+            # Get Brain configuration from dialog
+            provider, name, config_data = dialog.get_brain_config()
+            
+            # Create Brain instance
+            from core.brain_interface import BrainConfig
+            from core.brain_manager import brain_manager
+            from core.brains.ollama_brain import OllamaBrain
+            from core.brains.lmstudio_brain import LMStudioBrain
+            from core.brains.google_brain import GoogleBrain
+            from core.brains.openai_brain import OpenAIBrain
+            from core.brains.claude_brain import ClaudeBrain
+            from core.persistence import storage
+            import uuid
+            
+            # Generate unique ID
+            brain_id = f"{provider}_{uuid.uuid4().hex[:8]}"
+            
+            brain_config = BrainConfig(
+                id=brain_id,
+                name=name,
+                provider=provider,
+                config_data=config_data
+            )
+            
+            # Create Brain based on provider
+            try:
+                if provider == "ollama":
+                    new_brain = OllamaBrain(brain_config)
+                elif provider == "lmstudio":
+                    new_brain = LMStudioBrain(brain_config)
+                elif provider == "google":
+                    new_brain = GoogleBrain(brain_config)
+                elif provider == "openai":
+                    new_brain = OpenAIBrain(brain_config)
+                elif provider == "claude":
+                    new_brain = ClaudeBrain(brain_config)
+                else:
+                    raise ValueError(f"Unknown provider: {provider}")
+                
+                # Register Brain
+                brain_manager.register_brain(new_brain)
+                
+                # Save to database
+                capabilities = [cap.value for cap in new_brain.get_capabilities()]
+                storage.save_brain_config(
+                    brain_id,
+                    name,
+                    provider,
+                    new_brain.get_privacy_level().value,
+                    config_data,
+                    capabilities
+                )
+                
+                print(f"✅ Added new Brain: {name}")
+                
+                # Refresh the Brains list
+                self._populate_brains_list()
+                
+                # Update active Brain combo
+                all_brains = brain_manager.get_all_brains()
+                
+                self.active_brain_combo.remove_all()
+                for brain in all_brains:
+                    privacy_badge = {"local": "🔒", "trusted_cloud": "☁️", "external_cloud": "🌐"}.get(
+                        brain.get_privacy_level().value, ""
+                    )
+                    display_name = f"{privacy_badge} {brain.name}"
+                    self.active_brain_combo.append(brain.id, display_name)
+                
+            except Exception as e:
+                # Show error dialog
+                error_dialog = Gtk.MessageDialog(
+                    transient_for=self,
+                    flags=0,
+                    message_type=Gtk.MessageType.ERROR,
+                    buttons=Gtk.ButtonsType.OK,
+                    text="Failed to Add Brain"
+                )
+                error_dialog.format_secondary_text(str(e))
+                error_dialog.run()
+                error_dialog.destroy()
+        
+        dialog.destroy()
+
+
+class AddBrainDialog(Gtk.Dialog):
+    """Dialog for adding a new Brain."""
+    
+    def __init__(self, parent):
+        super().__init__(title="Add New Brain", transient_for=parent, flags=0)
+        self.add_buttons(
+            Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+            Gtk.STOCK_OK, Gtk.ResponseType.OK
+        )
+        self.set_default_size(400, 400)
+        
+        box = self.get_content_area()
+        box.set_spacing(15)
+        box.set_margin_top(20)
+        box.set_margin_bottom(20)
+        box.set_margin_start(20)
+        box.set_margin_end(20)
+        
+        # Provider selection
+        lbl = Gtk.Label(label="Provider")
         lbl.set_xalign(0)
         lbl.get_style_context().add_class("settings-skill-label")
         box.pack_start(lbl, False, False, 0)
         
         self.provider_combo = Gtk.ComboBoxText()
-        self.provider_combo.append("google", "google")
-        self.provider_combo.append("ollama", "ollama")
-        self.provider_combo.append("openai", "openai")
-        self.provider_combo.set_active_id(config.LLM_PROVIDER)
-        # set style color of combo box drop down/overlay to dark instead of white. the skill label doesn't make it visible
-        self.provider_combo.get_style_context().add_class("settings-combo-box")
+        self.provider_combo.append("ollama", "🔒 Ollama (Local)")
+        self.provider_combo.append("lmstudio", "🔒 LM Studio (Local)")
+        self.provider_combo.append("google", "☁️ Google Gemini")
+        self.provider_combo.append("openai", "🌐 OpenAI")
+        self.provider_combo.append("claude", "🌐 Anthropic Claude")
+        self.provider_combo.set_active(0)
+        self.provider_combo.connect("changed", self.on_provider_changed)
         box.pack_start(self.provider_combo, False, False, 0)
-
-        # Model Name
-        lbl = Gtk.Label(label="Model Name")
+        
+        # Brain name
+        lbl = Gtk.Label(label="Brain Name")
         lbl.set_xalign(0)
         lbl.get_style_context().add_class("settings-skill-label")
         box.pack_start(lbl, False, False, 0)
-        self.model_entry = Gtk.Entry()
-        self.model_entry.set_text(config.MODEL_NAME)
-        box.pack_start(self.model_entry, False, False, 0)
-
-        # API Key
-        lbl = Gtk.Label(label="API Key (Leave blank for Ollama)")
+        
+        self.name_entry = Gtk.Entry()
+        self.name_entry.set_placeholder_text("My Brain")
+        box.pack_start(self.name_entry, False, False, 0)
+        
+        # Dynamic config area
+        self.config_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        box.pack_start(self.config_box, True, True, 0)
+        
+        # Initial config for Ollama
+        self.on_provider_changed(self.provider_combo)
+        
+        self.show_all()
+    
+    def on_provider_changed(self, combo):
+        """Update config fields based on selected provider."""
+        # Clear existing config fields
+        for child in self.config_box.get_children():
+            self.config_box.remove(child)
+        
+        provider = combo.get_active_id()
+        
+        if provider == "ollama":
+            self._add_config_field("Ollama Host", "http://localhost:11434", "host_entry")
+            self._add_config_field("Model Name", "llama3", "model_entry")
+        
+        elif provider == "lmstudio":
+            self._add_config_field("LM Studio Endpoint", "http://localhost:1234/v1", "endpoint_entry")
+            self._add_config_field("Model Name", "local-model", "model_entry")
+        
+        elif provider in ["google", "openai", "claude"]:
+            self._add_config_field("API Key", "", "api_key_entry", password=True)
+            
+            default_models = {
+                "google": "gemini-1.5-flash",
+                "openai": "gpt-4o-mini",
+                "claude": "claude-3-5-sonnet-20241022"
+            }
+            self._add_config_field("Model Name", default_models.get(provider, ""), "model_entry")
+        
+        self.config_box.show_all()
+    
+    def _add_config_field(self, label_text, placeholder, entry_name, password=False):
+        """Helper to add a config field."""
+        lbl = Gtk.Label(label=label_text)
         lbl.set_xalign(0)
         lbl.get_style_context().add_class("settings-skill-label")
-        box.pack_start(lbl, False, False, 0)
-        self.api_entry = Gtk.Entry()
-        self.api_entry.set_text(config.API_KEY if config.API_KEY else "")
-        self.api_entry.set_visibility(False)
-        self.api_entry.set_placeholder_text("sk-...")
-        box.pack_start(self.api_entry, False, False, 0)
+        self.config_box.pack_start(lbl, False, False, 0)
         
-        # Save Button
-        save_btn = Gtk.Button(label="Save & Reload Brain")
-        save_btn.get_style_context().add_class("send-btn")
-        save_btn.connect("clicked", self.on_save_config)
-        box.pack_end(save_btn, False, False, 10)
-
-    def on_save_config(self, btn):
-        provider = self.provider_combo.get_active_text()
-        model = self.model_entry.get_text()
-        key = self.api_entry.get_text()
+        entry = Gtk.Entry()
+        entry.set_placeholder_text(placeholder)
+        if password:
+            entry.set_visibility(False)
+        setattr(self, entry_name, entry)
+        self.config_box.pack_start(entry, False, False, 0)
+    
+    def get_brain_config(self):
+        """Get the configured Brain settings."""
+        provider = self.provider_combo.get_active_id()
+        name = self.name_entry.get_text() or f"{provider.capitalize()} Brain"
         
-        config.save_config("LLM_PROVIDER", provider)
-        config.save_config("LLM_MODEL", model)
-        config.save_config("LLM_API_KEY", key)
+        config_data = {}
         
-        from core.brain import brain
-        brain.reload_config()
+        if provider == "ollama":
+            config_data = {
+                "host": self.host_entry.get_text() or "http://localhost:11434",
+                "model": self.model_entry.get_text() or "llama3"
+            }
+        elif provider == "lmstudio":
+            config_data = {
+                "endpoint": self.endpoint_entry.get_text() or "http://localhost:1234/v1",
+                "model": self.model_entry.get_text() or "local-model"
+            }
+        elif provider in ["google", "openai", "claude"]:
+            config_data = {
+                "api_key": self.api_key_entry.get_text(),
+                "model": self.model_entry.get_text()
+            }
         
-        # Show success visual (simple change of label temporarily)
-        btn.set_label("✅ Saved!")
-        GLib.timeout_add(2000, lambda: btn.set_label("Save & Reload Brain"))
+        return provider, name, config_data
 
 class Bubble(Gtk.Box):
     def __init__(self, text, sender="user", data=None):
