@@ -147,6 +147,31 @@ class Brain(ABC):
         """
         pass
     
+    def update_config(self, config_data: Dict[str, Any]) -> bool:
+        """
+        Update the Brain's provider-specific configuration.
+        
+        Args:
+            config_data: Dictionary of new settings
+            
+        Returns:
+            True if applied successfully, False otherwise
+        """
+        self.config.config_data.update(config_data)
+        return True
+    
+    def get_config_schema(self) -> List[Dict[str, Any]]:
+        """
+        Return the configuration schema for this Brain provider.
+        
+        Used by the UI to render configuration forms.
+        
+        Returns:
+            List of dictionaries describing config fields:
+            [{"name": "field_name", "type": "string|int|float|bool", "description": "...", "default": "..."}]
+        """
+        return []
+    
     def estimate_cost(self, prompt: str) -> Optional[float]:
         """
         Estimate the cost in USD for processing this prompt.
@@ -187,5 +212,12 @@ class Brain(ABC):
             "privacy_level": self.get_privacy_level().value,
             "capabilities": [cap.value for cap in self.get_capabilities()],
             "is_active": self.config.is_active,
-            "is_fallback": self.config.is_fallback
+            "is_fallback": self.config.is_fallback,
+            "config_data": self.config.config_data,
+            "config_schema": self.get_config_schema(),
+            "health": {
+                "status": "available",
+                "message": "Protocol ready",
+                "available_models": []
+            }
         }

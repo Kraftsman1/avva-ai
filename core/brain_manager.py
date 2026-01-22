@@ -284,6 +284,34 @@ class BrainManager:
         """
         return [brain.get_display_info() for brain in self.registry.values()]
     
+    def update_brain_config(self, brain_id: str, config_data: Dict[str, Any]) -> bool:
+        """
+        Update the configuration of a specific Brain.
+        
+        Args:
+            brain_id: ID of Brain to update
+            config_data: New configuration dictionary
+            
+        Returns:
+            True if successful, False if Brain not found
+        """
+        brain = self.get_brain(brain_id)
+        if brain:
+            success = brain.update_config(config_data)
+            if success:
+                # Persist to database
+                storage.save_brain_config(
+                    brain_id, 
+                    brain.name, 
+                    brain.provider, 
+                    brain.get_privacy_level().value, 
+                    brain.config.config_data, 
+                    [c.value for c in brain.get_capabilities()]
+                )
+                print(f"🧠 Updated configuration for Brain: {brain.name}")
+                return True
+        return False
+    
     def set_rules_only_mode(self, enabled: bool) -> None:
         """
         Enable or disable rules-only mode (no LLM).

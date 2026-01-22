@@ -98,3 +98,20 @@ class BaseBrain(Brain):
             tokens_used=tokens_used,
             cost_usd=cost_usd
         )
+
+    def get_display_info(self) -> Dict[str, Any]:
+        """
+        Get display information including cached health metadata.
+        """
+        info = super().get_display_info()
+        health = self.get_cached_health()
+        
+        info["health"] = {
+            "status": health.status.value,
+            "message": health.message,
+            "available_models": health.available_models or [],
+            "latency_ms": health.latency_ms,
+            "last_checked": health.last_checked.isoformat() if health.last_checked else None
+        }
+        
+        return info

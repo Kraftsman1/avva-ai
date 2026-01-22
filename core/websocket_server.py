@@ -152,6 +152,27 @@ class WebSocketServer:
                             "timestamp": datetime.now().isoformat()
                         })
 
+                    elif event_type == "brains.update_config":
+                        from core.brain_manager import brain_manager
+                        brain_id = payload.get("brain_id")
+                        config_data = payload.get("config", {})
+                        success = brain_manager.update_brain_config(brain_id, config_data)
+                        
+                        if success:
+                            # Broadcast updated brain data
+                            brains_info = brain_manager.get_brain_display_info()
+                            await self.broadcast({
+                                "type": "brains.data",
+                                "payload": {
+                                    "brains": brains_info,
+                                    "active_id": brain_manager.active_brain_id,
+                                    "fallback_id": brain_manager.fallback_brain_id,
+                                    "rules_only": brain_manager.rules_only_mode,
+                                    "auto_selection": brain_manager.auto_selection_enabled
+                                },
+                                "timestamp": datetime.now().isoformat()
+                            })
+
                     elif event_type == "settings.get":
                         from core.config import config
                         # Filter out sensitive keys for broad broadcast? No, just send it for now

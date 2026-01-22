@@ -97,6 +97,50 @@ class OllamaBrain(BaseBrain):
                 message=f"Cannot connect to Ollama at {self.host}: {str(e)}"
             )
     
+    def update_config(self, config_data: Dict[str, Any]) -> bool:
+        """Update Ollama specific config."""
+        self.host = config_data.get("host", self.host)
+        self.model = config_data.get("model", self.model)
+        self.temperature = config_data.get("temperature", self.temperature)
+        self.max_tokens = config_data.get("max_tokens", self.max_tokens)
+        
+        # Update underlying config object
+        return super().update_config(config_data)
+
+    def get_config_schema(self) -> List[Dict[str, Any]]:
+        """Return schema for Ollama settings."""
+        return [
+            {
+                "name": "host",
+                "type": "string",
+                "description": "Ollama API Endpoint",
+                "default": "http://localhost:11434"
+            },
+            {
+                "name": "model",
+                "type": "string",
+                "description": "Neural Weights (Llama3, Mistral, etc)",
+                "default": "llama3:8b"
+            },
+            {
+                "name": "temperature",
+                "type": "float",
+                "description": "Creativity vs Precision",
+                "default": "0.7",
+                "min": 0,
+                "max": 1,
+                "step": 0.05
+            },
+            {
+                "name": "max_tokens",
+                "type": "int",
+                "description": "Maximum Neural output buffer",
+                "default": "4096",
+                "min": 256,
+                "max": 32768
+            }
+        ]
+
     def execute(self, prompt: str, context: Dict[str, Any], constraints: Dict[str, Any]) -> BrainResponse:
         """Execute reasoning with Ollama."""
         try:

@@ -158,6 +158,15 @@ export default defineNuxtPlugin(() => {
         }
     }
 
+    const updateBrainConfig = (brainId: string, config: any) => {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+                type: 'brains.update_config',
+                payload: { brain_id: brainId, config }
+            }))
+        }
+    }
+
     const fetchSettings = () => {
         if (ws && ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify({ type: 'settings.get' }))
@@ -188,6 +197,7 @@ export default defineNuxtPlugin(() => {
                 fetchBrains,
                 selectBrain,
                 toggleBrainMode,
+                updateBrainConfig,
                 fetchSettings,
                 updateSettings
             }

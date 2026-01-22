@@ -54,7 +54,8 @@
 
 @layer components {
     .cyber-panel {
-        @apply bg-[#000000] border border-white/[0.04] backdrop-blur-xl shadow-[inset_0_1px_1px_rgba(255, 255, 255, 0.02)];
+        @apply bg-[#000000] border border-white/[0.04] backdrop-blur-xl;
+        box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.02);
     }
 
     .cyber-card {

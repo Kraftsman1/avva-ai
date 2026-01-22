@@ -1,11 +1,11 @@
 <template>
-  <ScrollArea class="flex-1 h-full" ref="scrollContainer">
-    <div class="flex-1 flex flex-col p-10 pb-36 max-w-5xl mx-auto w-full font-sans">
+  <ScrollArea class="flex-1 h-full bg-transparent" ref="scrollContainer">
+    <div class="flex-1 flex flex-col p-10 pb-40 max-w-5xl mx-auto w-full font-sans">
       <!-- Session Start Indicator -->
-      <div class="flex justify-center mb-16 px-10">
+      <div class="flex justify-center mb-20 px-10 animate-in fade-in slide-in-from-top-4 duration-1000">
         <div
-          class="px-8 py-3 bg-white/[0.02] border border-white/[0.04] rounded-2xl flex items-center gap-4 shadow-xl backdrop-blur-md">
-          <div class="w-1.5 h-1.5 bg-ava-purple rounded-full shadow-[0_0_8px_#7c3aed]"></div>
+          class="px-8 py-3 bg-white/[0.02] border border-white/[0.04] rounded-2xl flex items-center gap-4 shadow-2xl backdrop-blur-md">
+          <div class="w-1.5 h-1.5 bg-ava-purple rounded-full shadow-[0_0_10px_#7c3aed]"></div>
           <span class="text-[10px] font-black text-white/30 tracking-[0.3em] uppercase">
             ACTIVE_NEURAL_LINK: {{ currentSessionLabel }}
           </span>
@@ -13,67 +13,83 @@
       </div>
 
       <!-- Messages -->
-      <div class="space-y-10">
-        <div v-for="msg in $ava?.state?.messages || []" :key="msg.id"
-          class="flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-500"
-          :class="msg.sender === 'user' ? 'items-end' : 'items-start'">
+      <div class="space-y-12">
+        <div v-for="(msg, idx) in $ava?.state?.messages || []" :key="msg.id"
+          class="flex flex-col animate-in fade-in slide-in-from-bottom-8 duration-700"
+          :class="msg.sender === 'user' ? 'items-end' : 'items-start'" :style="{ animationDelay: (idx * 50) + 'ms' }">
+
           <!-- Message Group -->
-          <div class="max-w-[85%] flex items-start gap-5" :class="msg.sender === 'user' ? 'flex-row-reverse' : ''">
-            <!-- Icon/Avatar for AVA -->
+          <div class="max-w-[88%] lg:max-w-[80%] flex items-start gap-6"
+            :class="msg.sender === 'user' ? 'flex-row-reverse' : ''">
+
+            <!-- Icon for AVA -->
             <div v-if="msg.sender !== 'user'"
-              class="w-10 h-10 rounded-xl bg-[#2a1a4a] border border-[#7c3aed33] flex items-center justify-center shadow-lg shrink-0 mt-1">
-              <Bot :size="20" class="text-[#7c3aed]" />
+              class="w-12 h-12 rounded-2xl bg-black border border-ava-purple/20 flex items-center justify-center shadow-[0_0_20px_rgba(124,58,237,0.1)] shrink-0 mt-1 relative overflow-hidden group">
+              <div
+                class="absolute inset-0 bg-gradient-to-br from-ava-purple/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+              </div>
+              <Bot :size="24" class="text-ava-purple relative z-10" />
             </div>
 
             <div class="flex flex-col" :class="msg.sender === 'user' ? 'items-end' : 'items-start'">
               <!-- Attribution -->
-              <span class="text-[10px] font-black tracking-widest uppercase mb-2 px-1"
-                :class="msg.sender === 'user' ? 'text-white/40' : 'text-[#7c3aed]'">
-                {{ msg.sender === 'user' ? 'YOU' : 'AVA' }}
+              <span class="text-[9px] font-black tracking-[0.25em] uppercase mb-3 px-1"
+                :class="msg.sender === 'user' ? 'text-white/20' : 'text-ava-purple/50'">
+                {{ msg.sender === 'user' ? 'USER_INPUT' : 'AVA_CORE_RESPONSE' }}
               </span>
 
               <!-- Content Bubble -->
-              <div class="p-6 rounded-2xl transition-all" :class="msg.sender === 'user'
-                ? 'bubble-user rounded-tr-none'
-                : 'bubble-ava rounded-tl-none border-[#7c3aed11]'
-                ">
+              <div
+                class="p-4 rounded-[2.5rem] transition-all duration-500 hover:shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-transparent"
+                :class="msg.sender === 'user'
+                  ? 'bubble-user rounded-tr-none'
+                  : 'bubble-ava rounded-tl-none border-white/[0.02]'
+                  ">
                 <div v-if="hasCode(msg.text)">
-                  <p class="text-[15px] leading-relaxed mb-4 font-medium">{{ getTextBeforeCode(msg.text) }}</p>
-                  <div class="bg-[#07070a] rounded-xl border border-white/5 overflow-hidden shadow-2xl">
-                    <div class="px-4 py-2 bg-white/[0.03] border-b border-white/5 flex justify-between items-center">
-                      <span class="text-[10px] font-mono text-white/40 tracking-wider">shell_script.sh</span>
+                  <p class="text-[16px] leading-[1.6] mb-6 font-medium tracking-tight text-white/90">{{
+                    getTextBeforeCode(msg.text) }}</p>
+                  <div class="bg-black rounded-3xl border border-white/[0.04] overflow-hidden shadow-2xl my-4">
+                    <div
+                      class="px-6 py-4 bg-white/[0.02] border-b border-white/[0.04] flex justify-between items-center">
+                      <div class="flex items-center gap-2">
+                        <div class="w-2 h-2 rounded-full bg-white/10"></div>
+                        <span
+                          class="text-[10px] font-black text-white/30 tracking-[0.2em] uppercase">neural_script.sh</span>
+                      </div>
                       <Copy :size="14" class="text-white/20 hover:text-white cursor-pointer transition-colors" />
                     </div>
                     <pre
-                      class="p-6 font-mono text-sm overflow-x-auto text-[#a78bfa]"><code>{{ getCode(msg.text) }}</code></pre>
+                      class="p-8 font-mono text-sm overflow-x-auto text-ava-purple/80 selection:bg-ava-purple/30"><code>{{ getCode(msg.text) }}</code></pre>
                   </div>
-                  <p v-if="getTextAfterCode(msg.text)" class="text-[15px] leading-relaxed mt-4 font-medium">
+                  <p v-if="getTextAfterCode(msg.text)"
+                    class="text-[16px] leading-[1.6] mt-6 font-medium tracking-tight text-white/90">
                     {{ getTextAfterCode(msg.text) }}
                   </p>
                 </div>
-                <p v-else class="text-[15px] leading-relaxed font-medium tracking-tight">
+                <p v-else class="text-[16px] leading-[1.6] font-medium tracking-tight text-white/90">
                   {{ msg.text }}
                 </p>
 
-                <!-- Status Indicators for AVA stats if any (Mocked for visual fidelity as per screenshot) -->
-                <div v-if="msg.text.includes('temperature')" class="mt-4 pt-4 border-t border-white/5 flex gap-4">
-                  <div class="flex items-center gap-2">
-                    <div class="w-1.5 h-1.5 rounded-full bg-[#7c3aed]"></div>
-                    <span class="text-[10px] font-bold text-white/40 uppercase tracking-widest">TEMP: 54°C</span>
+                <!-- System Telemetry Overlay in Chat -->
+                <div v-if="msg.text.includes('temperature') || msg.text.includes('thermal')"
+                  class="mt-6 pt-6 border-t border-white/[0.05] flex flex-wrap gap-6 animate-in fade-in duration-1000">
+                  <div class="flex items-center gap-3">
+                    <div class="w-1.5 h-1.5 rounded-full bg-ava-purple shadow-[0_0_8px_#7c3aed]"></div>
+                    <span class="text-[9px] font-black text-white/30 uppercase tracking-[0.2em]">NODE_TEMP: 54°C</span>
                   </div>
-                  <div class="flex items-center gap-2">
-                    <div class="w-1.5 h-1.5 rounded-full bg-[#ef4444]"></div>
-                    <span class="text-[10px] font-bold text-white/40 uppercase tracking-widest">THRESHOLD: 85°C</span>
+                  <div class="flex items-center gap-3">
+                    <div class="w-1.5 h-1.5 rounded-full bg-red-500/50"></div>
+                    <span class="text-[9px] font-black text-white/30 uppercase tracking-[0.2em]">THRESHOLD: 85°C</span>
                   </div>
                 </div>
               </div>
             </div>
 
-            <!-- User Avatar (Mockup style) -->
+            <!-- User Avatar -->
             <div v-if="msg.sender === 'user'"
-              class="w-10 h-10 rounded-xl bg-[#1a1a2e] border border-white/10 flex items-center justify-center shadow-lg shrink-0 mt-1 overflow-hidden">
-              <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Ghost" class="w-full h-full object-cover"
-                alt="You" />
+              class="w-12 h-12 rounded-2xl bg-black border border-white/5 flex items-center justify-center shadow-lg shrink-0 mt-1 overflow-hidden group">
+              <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Ghost"
+                class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt="You" />
             </div>
           </div>
         </div>
@@ -88,10 +104,10 @@ import { Bot, Copy } from 'lucide-vue-next'
 const { $ava } = useNuxtApp()
 const scrollContainer = ref(null)
 
-const currentSessionLabel = 'LINUX ENVIRONMENT OPTIMIZATION'
+const currentSessionLabel = 'NEURAL_INTEGRATION_LAYER'
 
 const hasCode = (text) => text.includes('```')
-const getCode = (text) => text.split('```')[1]?.split('\n').splice(1).join('\n')
+const getCode = (text) => text.split('```')[1]?.split('\n').slice(1).join('\n')
 const getTextBeforeCode = (text) => text.split('```')[0]
 const getTextAfterCode = (text) => text.split('```')[2]
 
@@ -101,9 +117,22 @@ watch(
     nextTick(() => {
       const viewport = scrollContainer.value?.$el?.querySelector('[data-radix-scroll-area-viewport]')
       if (viewport) {
-        viewport.scrollTop = viewport.scrollHeight
+        viewport.scrollTo({
+          top: viewport.scrollHeight,
+          behavior: 'smooth'
+        })
       }
     })
   }
 )
 </script>
+
+<style scoped>
+.bubble-user {
+  @apply selection:bg-white/20;
+}
+
+.bubble-ava {
+  @apply selection:bg-ava-purple/30;
+}
+</style>

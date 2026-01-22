@@ -1,15 +1,15 @@
 <template>
-    <div class="flex-1 overflow-y-auto p-6 lg:p-14 font-sans bg-[#000000] selection:bg-ava-purple/30">
+    <div class="h-full w-full overflow-y-auto p-6 lg:p-14 font-sans bg-[#000000] selection:bg-ava-purple/30">
         <!-- Breadcrumbs & Meta -->
         <div class="flex items-center justify-between mb-10 animate-in fade-in slide-in-from-top-4 duration-700">
             <div class="flex items-center gap-2 text-[10px] font-black text-white/20 tracking-[0.2em] uppercase">
                 <NuxtLink to="/" class="hover:text-ava-purple transition-colors">OS_LAYER</NuxtLink>
                 <span class="opacity-30">/</span>
-                <span class="text-white/40">CORE_CONFIG</span>
+                <span class="text-white/40">INTEL_STACK_CORE</span>
             </div>
             <div class="flex items-center gap-3">
                 <div class="h-[1px] w-12 bg-white/5"></div>
-                <span class="text-[9px] font-mono text-white/10 tracking-widest">BUILD_24.0.STABLE</span>
+                <span class="text-[9px] font-mono text-white/10 tracking-widest">LAYER_VISUALIZER_STABLE</span>
             </div>
         </div>
 
@@ -20,154 +20,319 @@
                 <div class="flex items-center gap-4">
                     <div
                         class="w-12 h-12 rounded-2xl bg-gradient-to-br from-ava-purple to-[#9333ea] flex items-center justify-center shadow-[0_0_20px_rgba(124,58,237,0.3)]">
-                        <Settings class="w-6 h-6 text-white" />
+                        <Cpu class="w-6 h-6 text-white" />
                     </div>
-                    <h1 class="text-5xl font-black text-white tracking-tighter">System Configuration</h1>
+                    <h1 class="text-5xl font-black text-white tracking-tighter italic">Intelligence Stack</h1>
                 </div>
                 <p class="text-white/30 font-medium text-lg max-w-xl leading-relaxed">
-                    Orchestrate the underlying intelligence layers and hardware mapping of your Linux Assistant.
+                    Tuning the neural kernel and hardware acceleration for optimal local-first response.
                 </p>
             </div>
-            <Button variant="outline"
-                class="border-white/5 bg-white/[0.02] text-white/40 hover:bg-white/[0.05] hover:text-white gap-3 font-black text-[10px] tracking-[0.2em] uppercase px-8 h-14 rounded-2xl group transition-all"
-                @click="refreshAll">
-                <RefreshCw class="w-4 h-4 group-hover:rotate-180 transition-transform duration-700" />
-                SYNC_STATE
-            </Button>
+            <div class="flex gap-4">
+                <Button variant="outline"
+                    class="border-white/5 bg-white/[0.02] text-white/40 hover:bg-white/[0.05] hover:text-white gap-3 font-black text-[10px] tracking-[0.2em] uppercase px-8 h-14 rounded-2xl group transition-all"
+                    @click="refreshAll">
+                    <RefreshCw class="w-4 h-4 group-hover:rotate-180 transition-transform duration-700" />
+                    RECALIBRATE
+                </Button>
+            </div>
         </div>
 
         <Tabs v-model="activeTab" class="w-full">
             <div
                 class="flex items-center justify-between mb-12 border-b border-white/[0.03] pb-1 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
                 <TabsList class="bg-transparent p-0 gap-10 h-auto">
-                    <TabsTrigger value="general"
+                    <TabsTrigger value="stack"
                         class="px-0 py-4 bg-transparent data-[state=active]:bg-transparent data-[state=active]:text-ava-purple text-white/20 font-black text-[11px] tracking-[0.3em] uppercase rounded-none border-b-2 border-transparent data-[state=active]:border-ava-purple transition-all hover:text-white/60">
-                        01_GENERAL
+                        01_INTEL_STACK
                     </TabsTrigger>
                     <TabsTrigger value="brains"
                         class="px-0 py-4 bg-transparent data-[state=active]:bg-transparent data-[state=active]:text-ava-purple text-white/20 font-black text-[11px] tracking-[0.3em] uppercase rounded-none border-b-2 border-transparent data-[state=active]:border-ava-purple transition-all hover:text-white/60">
                         02_BRAIN_REGISTRY
                     </TabsTrigger>
-                    <TabsTrigger value="stack"
+                    <TabsTrigger value="general"
                         class="px-0 py-4 bg-transparent data-[state=active]:bg-transparent data-[state=active]:text-ava-purple text-white/20 font-black text-[11px] tracking-[0.3em] uppercase rounded-none border-b-2 border-transparent data-[state=active]:border-ava-purple transition-all hover:text-white/60">
-                        03_INTEL_STACK
+                        03_CORE_IDENTITY
                     </TabsTrigger>
                 </TabsList>
             </div>
 
-            <!-- General Settings Tab -->
-            <TabsContent value="general" class="animate-in fade-in zoom-in-95 duration-500 outline-none">
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
-                    <Card class="cyber-card p-10 space-y-10 group">
-                        <div class="flex items-center gap-4 border-l-2 border-ava-purple pl-4">
-                            <h2 class="text-xl font-black text-white tracking-tight uppercase tracking-[0.1em]">Identity
-                                & Voice</h2>
-                        </div>
-                        <div class="space-y-8">
-                            <div class="space-y-3">
-                                <Label
-                                    class="text-[9px] font-black text-white/20 tracking-[0.2em] uppercase ml-1">Assistant
-                                    Identifier</Label>
-                                <Input v-model="settings.NAME"
-                                    class="bg-white/[0.02] border-white/5 text-white h-14 rounded-2xl px-6 focus:border-ava-purple/50 focus:bg-white/[0.04] transition-all"
-                                    @change="saveSettings" />
+            <!-- Intelligence Stack Tab -->
+            <TabsContent value="stack" class="animate-in fade-in zoom-in-95 duration-500 outline-none">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
+                    <div class="lg:col-span-2 space-y-10">
+                        <!-- Health/Dependency Alert -->
+                        <div v-if="activeBrain?.health?.status !== 'available'"
+                            class="cyber-card border-amber-500/20 bg-amber-500/[0.02] p-8 flex items-start gap-6 animate-in slide-in-from-top-4 duration-700">
+                            <div
+                                class="p-3 rounded-2xl bg-amber-500/10 text-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.2)]">
+                                <AlertTriangle class="w-6 h-6" />
                             </div>
-                            <div class="space-y-3">
-                                <Label
-                                    class="text-[9px] font-black text-white/20 tracking-[0.2em] uppercase ml-1">Neural
-                                    Wake Word</Label>
-                                <Input v-model="settings.WAKE_WORD"
-                                    class="bg-white/[0.02] border-white/5 text-white h-14 rounded-2xl px-6 focus:border-ava-purple/50 focus:bg-white/[0.04] transition-all"
-                                    @change="saveSettings" />
-                            </div>
-                            <div class="space-y-3">
-                                <Label class="text-[9px] font-black text-white/20 tracking-[0.2em] uppercase ml-1">OS
-                                    Language Mapping</Label>
-                                <Select v-model="settings.LANGUAGE" @update:modelValue="saveSettings">
-                                    <SelectTrigger
-                                        class="bg-white/[0.02] border-white/5 text-white h-14 rounded-2xl px-6 hover:bg-white/[0.04]">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent
-                                        class="bg-[#0a0a0f] border-white/10 text-white rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
-                                        <SelectItem value="en-uk">English (UK)</SelectItem>
-                                        <SelectItem value="en-us">English (US)</SelectItem>
-                                        <SelectItem value="es-es">Spanish (ES)</SelectItem>
-                                        <SelectItem value="fr-fr">French (FR)</SelectItem>
-                                    </SelectContent>
-                                </Select>
+                            <div class="space-y-2 flex-1">
+                                <h3 class="text-amber-500 font-black text-sm uppercase tracking-widest">Dependency
+                                    Missing or Unreachable</h3>
+                                <p class="text-white/40 text-xs font-medium leading-relaxed">
+                                    {{ activeBrain?.health?.message || 'The configured LLM provider is not responding. Ensure Ollama or your cloud gateway is active.' }}
+                                </p>
+                                <div class="pt-2 flex gap-4">
+                                    <a href="https://ollama.com/download" target="_blank"
+                                        class="text-[9px] font-black text-amber-500/60 hover:text-amber-500 tracking-[0.2em] uppercase transition-colors">>>
+                                        INSTALL_OLLAMA</a>
+                                    <button @click="refreshAll"
+                                        class="text-[9px] font-black text-white/20 hover:text-white transition-colors tracking-[0.2em] uppercase">>>
+                                        RETRY_CONNECTION</button>
+                                </div>
                             </div>
                         </div>
-                    </Card>
+
+                        <!-- Inference Engine Configuration -->
+                        <Card class="cyber-card p-10 space-y-10 border-ava-purple/20">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-4 border-l-2 border-ava-purple pl-4">
+                                    <h2 class="text-xl font-black text-white tracking-tight uppercase tracking-[0.1em]">
+                                        Neural Link Configuration</h2>
+                                </div>
+                                <div v-if="activeBrain"
+                                    class="px-3 py-1 rounded-md bg-ava-purple/10 border border-ava-purple/20 text-[9px] font-black text-ava-purple uppercase tracking-widest">
+                                    ACTIVE: {{ activeBrain.name }}
+                                </div>
+                            </div>
+
+                            <div v-if="activeBrain?.config_schema?.length"
+                                class="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-12">
+                                <div v-for="field in activeBrain.config_schema" :key="field.name" class="space-y-4">
+                                    <div class="flex justify-between items-end px-1">
+                                        <Label
+                                            class="text-[10px] font-black text-white/30 tracking-[0.2em] uppercase">{{
+                                            field.name.replace('_', ' ') }}</Label>
+                                        <span v-if="field.type !== 'string' && field.type !== 'bool'"
+                                            class="text-ava-purple font-mono font-black text-sm tabular-nums">
+                                            {{ brainConfigState[field.name] }}
+                                        </span>
+                                    </div>
+
+                                    <!-- String/Input or Select for Model -->
+                                    <template v-if="field.type === 'string'">
+                                        <div
+                                            v-if="field.name === 'model' && activeBrain?.health?.available_models?.length">
+                                            <Select v-model="brainConfigState[field.name]"
+                                                @update:modelValue="saveBrainConfig">
+                                                <SelectTrigger
+                                                    class="bg-white/[0.02] border-white/5 text-white h-14 rounded-2xl px-6 hover:bg-white/[0.04]">
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent
+                                                    class="bg-[#0a0a0f] border-white/10 text-white rounded-xl">
+                                                    <SelectItem v-for="m in activeBrain.health.available_models"
+                                                        :key="m" :value="m">
+                                                        {{ m }}
+                                                    </SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <Input v-else v-model="brainConfigState[field.name]"
+                                            class="bg-white/[0.02] border-white/5 text-white h-14 rounded-2xl px-6 focus:border-ava-purple/50 focus:bg-white/[0.04] transition-all font-mono text-sm"
+                                            @change="saveBrainConfig" />
+                                    </template>
+
+                                    <!-- Float/Slider -->
+                                    <Slider v-if="field.type === 'float'" v-model="brainSliderRefs[field.name]"
+                                        :max="field.max || 1" :min="field.min || 0" :step="field.step || 0.01"
+                                        class="py-2 spectral-slider"
+                                        @update:modelValue="(val) => { brainConfigState[field.name] = val[0]; saveBrainConfig(); }" />
+
+                                    <!-- Int/Slider -->
+                                    <Slider v-if="field.type === 'int'" v-model="brainSliderRefs[field.name]"
+                                        :max="field.max || 32768" :min="field.min || 256" :step="field.step || 128"
+                                        class="py-2 spectral-slider"
+                                        @update:modelValue="(val) => { brainConfigState[field.name] = val[0]; saveBrainConfig(); }" />
+
+                                    <!-- Bool/Switch -->
+                                    <div v-if="field.type === 'bool'"
+                                        class="flex items-center justify-between h-14 bg-white/[0.02] border border-white/5 rounded-2xl px-6">
+                                        <span
+                                            class="text-[9px] font-black text-white/20 uppercase tracking-widest">ENABLED</span>
+                                        <Switch :checked="brainConfigState[field.name]"
+                                            @update:checked="(val) => { brainConfigState[field.name] = val; saveBrainConfig(); }" />
+                                    </div>
+
+                                    <p
+                                        class="text-[9px] text-white/10 font-bold uppercase tracking-widest leading-tight px-1 italic">
+                                        {{ field.description
+                                        }}</p>
+                                </div>
+                            </div>
+                            <div v-else
+                                class="flex flex-col items-center justify-center py-20 text-center space-y-4 opacity-20 border border-dashed border-white/10 rounded-3xl">
+                                <Pentagon class="w-12 h-12 text-white" />
+                                <p class="text-[10px] font-black uppercase tracking-[0.3em]">Neural stack
+                                    self-optimizing...</p>
+                            </div>
+                        </Card>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+                            <Card class="cyber-card p-10 space-y-10 group">
+                                <div class="flex items-center gap-4 border-l-2 border-ava-purple pl-4">
+                                    <h2 class="text-xl font-black text-white tracking-tight uppercase tracking-[0.1em]">
+                                        Kernel Paths</h2>
+                                </div>
+                                <div class="space-y-8">
+                                    <div class="space-y-3">
+                                        <Label
+                                            class="text-[9px] font-black text-white/20 tracking-[0.2em] uppercase ml-1">Model
+                                            Repository</Label>
+                                        <div class="relative group">
+                                            <Input v-model="modelPath"
+                                                class="bg-white/[0.02] border-white/5 text-[#a78bfa] font-mono h-14 rounded-2xl px-6 focus:border-ava-purple/50 pr-12 transition-all hover:bg-white/[0.04]"
+                                                @change="saveConfigSetting('MODEL_PATH', modelPath)" />
+                                            <Folder
+                                                class="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/10 group-hover:text-ava-purple transition-colors" />
+                                        </div>
+                                    </div>
+                                    <div class="space-y-3">
+                                        <Label
+                                            class="text-[9px] font-black text-white/20 tracking-[0.2em] uppercase ml-1">Knowledge
+                                            Vault
+                                            (Vector DB)</Label>
+                                        <div class="relative group">
+                                            <Input v-model="dbPath"
+                                                class="bg-white/[0.02] border-white/5 text-[#a78bfa] font-mono h-14 rounded-2xl px-6 focus:border-ava-purple/50 pr-12 transition-all hover:bg-white/[0.04]"
+                                                @change="saveConfigSetting('DB_PATH', dbPath)" />
+                                            <HardDrive
+                                                class="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/10 group-hover:text-ava-purple transition-colors" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </Card>
+
+                            <div
+                                class="glass-panel p-10 rounded-3xl flex flex-col justify-center gap-6 border-white/[0.01]">
+                                <div class="space-y-2">
+                                    <div class="text-[9px] font-black text-[#34d399] tracking-widest uppercase">
+                                        SYSLOG_TELEMETRY</div>
+                                    <p
+                                        class="text-[11px] text-white/30 font-bold leading-relaxed uppercase tracking-tighter">
+                                        Your local
+                                        intelligence stack is running on NVIDIA CUDA 12.4. Tensor cores are engaged for
+                                        high-speed inference.
+                                    </p>
+                                </div>
+                                <div class="flex gap-3">
+                                    <div v-for="i in 12" :key="i"
+                                        class="h-8 w-1.5 bg-white/[0.02] rounded-full overflow-hidden relative">
+                                        <div class="absolute bottom-0 left-0 w-full bg-ava-purple rounded-full transition-all duration-1000"
+                                            :style="{ height: Math.random() * 100 + '%', opacity: 0.2 + Math.random() * 0.5 }">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
                     <div class="space-y-10">
-                        <Card class="cyber-card p-10 space-y-10">
-                            <div class="flex items-center gap-4 border-l-2 border-[#34d399] pl-4">
-                                <h2 class="text-xl font-black text-white tracking-tight uppercase tracking-[0.1em]">
-                                    Engine Parameters</h2>
+                        <!-- Telemetry Card -->
+                        <Card class="cyber-card p-10 space-y-10 overflow-hidden relative border-ava-purple/20">
+                            <div class="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
+                                <Pentagon class="w-32 h-32 text-ava-purple rotate-12" />
                             </div>
-                            <div class="space-y-8">
-                                <div class="space-y-3">
-                                    <Label
-                                        class="text-[9px] font-black text-white/20 tracking-[0.2em] uppercase ml-1">Universal
-                                        API Access</Label>
-                                    <Input v-model="settings.API_KEY" type="password"
-                                        class="bg-white/[0.02] border-white/5 text-white h-14 rounded-2xl px-6 font-mono focus:border-ava-purple/50 transition-all"
-                                        placeholder="GEMINI_PRIVATE_KEY_••••••••" @change="saveSettings" />
+                            <div class="flex justify-between items-center relative z-10">
+                                <h2 class="text-xl font-black text-white tracking-tight uppercase tracking-[0.1em]">
+                                    Engine Pulse</h2>
+                                <div class="flex items-center gap-2">
+                                    <div
+                                        class="w-1.5 h-1.5 bg-[#34d399] rounded-full neon-pulse shadow-[0_0_8px_#34d399]">
+                                    </div>
+                                    <span
+                                        class="text-[9px] font-black text-[#34d399] tracking-widest uppercase">LIVE_STATS</span>
                                 </div>
-                                <div class="space-y-3">
-                                    <Label
-                                        class="text-[9px] font-black text-white/20 tracking-[0.2em] uppercase ml-1">Speech
-                                        Synthesis Engine</Label>
-                                    <Select v-model="settings.TTS_ENGINE" @update:modelValue="saveSettings">
-                                        <SelectTrigger
-                                            class="bg-white/[0.02] border-white/5 text-white h-14 rounded-2xl px-6">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent class="bg-[#0a0a0f] border-white/10 text-white rounded-xl">
-                                            <SelectItem value="piper">Piper (Native/Local)</SelectItem>
-                                            <SelectItem value="gtts">Google Cloud (Cloud)</SelectItem>
-                                            <SelectItem value="openai">OpenAI (Cloud)</SelectItem>
-                                        </SelectContent>
-                                    </Select>
+                            </div>
+
+                            <div class="space-y-10 relative z-10">
+                                <div v-if="activeBrain?.health" class="space-y-4">
+                                    <div
+                                        class="flex justify-between items-center text-[10px] font-black tracking-widest uppercase">
+                                        <span class="text-white/30 italic">Endpoint Status</span>
+                                        <span
+                                            :class="activeBrain.health.status === 'available' ? 'text-[#34d399]' : 'text-amber-500'"
+                                            class="tabular-nums uppercase">{{ activeBrain.health.status }}</span>
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <div class="flex-1 h-1 bg-white/[0.03] rounded-full overflow-hidden">
+                                            <div class="h-full bg-ava-purple transition-all duration-1000"
+                                                :style="{ width: activeBrain.health.status === 'available' ? '100%' : '30%' }">
+                                            </div>
+                                        </div>
+                                        <span class="text-[8px] text-white/20 font-mono">{{
+                                            activeBrain.health.latency_ms ?
+                                            activeBrain.health.latency_ms.toFixed(0) + 'ms' : '---' }}</span>
+                                    </div>
                                 </div>
-                                <div v-if="settings.TTS_ENGINE === 'piper'"
-                                    class="space-y-3 animate-in slide-in-from-top-2 duration-300">
-                                    <Label
-                                        class="text-[9px] font-black text-white/20 tracking-[0.2em] uppercase ml-1">Acoustic
-                                        Model</Label>
-                                    <Select v-model="settings.PIPER_VOICE" @update:modelValue="saveSettings">
-                                        <SelectTrigger
-                                            class="bg-white/[0.02] border-white/5 text-white h-14 rounded-2xl px-6">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent class="bg-[#0a0a0f] border-white/10 text-white rounded-xl">
-                                            <SelectItem value="en_US-lessac-medium.onnx">M_Lessac_Med</SelectItem>
-                                            <SelectItem value="en_US-amy-low.onnx">F_Amy_LowRes</SelectItem>
-                                            <SelectItem value="en_GB-southern_english_female-low.onnx">F_Southern_UK
-                                            </SelectItem>
-                                        </SelectContent>
-                                    </Select>
+
+                                <div class="space-y-4">
+                                    <div
+                                        class="flex justify-between items-center text-[10px] font-black tracking-widest uppercase">
+                                        <span class="text-white/30 italic">NPU Core Load</span>
+                                        <span class="text-ava-purple tabular-nums">{{ intStats.npu_acceleration
+                                            }}%</span>
+                                    </div>
+                                    <div
+                                        class="h-1.5 w-full bg-white/[0.03] rounded-full overflow-hidden p-[1px] border border-white/[0.05]">
+                                        <div class="h-full bg-gradient-to-r from-ava-purple to-[#9333ea] rounded-full shadow-[0_0_15px_rgba(124,58,237,0.5)] transition-all duration-1000"
+                                            :style="{ width: intStats.npu_acceleration + '%' }"></div>
+                                    </div>
+                                </div>
+
+                                <div class="space-y-4">
+                                    <div
+                                        class="flex justify-between items-center text-[10px] font-black tracking-widest uppercase">
+                                        <span class="text-white/30 italic">Neural VRAM Affinity</span>
+                                        <span class="text-ava-purple tabular-nums">{{ vramFormatted }}</span>
+                                    </div>
+                                    <div
+                                        class="h-1.5 w-full bg-white/[0.03] rounded-full overflow-hidden p-[1px] border border-white/[0.05]">
+                                        <div class="h-full bg-gradient-to-r from-ava-purple to-[#9333ea] rounded-full shadow-[0_0_15px_rgba(124,58,237,0.5)] transition-all duration-1000"
+                                            :style="{ width: sysStats.vram + '%' }"></div>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-4 mt-4">
+                                    <div
+                                        class="glass-panel p-6 rounded-3xl text-center space-y-2 border-white/[0.01] hover:bg-white/[0.03] transition-all">
+                                        <div class="text-[8px] font-black text-white/10 tracking-[0.2em] uppercase">
+                                            TOKEN_VELOCITY</div>
+                                        <div class="text-3xl font-black text-white tracking-tighter tabular-nums">{{
+                                            intStats.tokens_sec
+                                            }}<span class="text-xs text-white/20 ml-1 italic">/s</span></div>
+                                    </div>
+                                    <div
+                                        class="glass-panel p-6 rounded-3xl text-center space-y-2 border-white/[0.01] hover:bg-white/[0.03] transition-all">
+                                        <div class="text-[8px] font-black text-white/10 tracking-[0.2em] uppercase">
+                                            LINK_LATENCY</div>
+                                        <div class="text-3xl font-black text-white tracking-tighter tabular-nums">{{
+                                            intStats.latency
+                                            }}<span class="text-xs text-white/20 ml-1 italic">ms</span></div>
+                                    </div>
                                 </div>
                             </div>
                         </Card>
 
-                        <div class="glass-panel p-6 rounded-3xl flex items-center gap-5 border-white/[0.02]">
-                            <div class="p-3 rounded-xl bg-[#34d399]/10 text-[#34d399]">
-                                <ShieldCheck class="w-6 h-6" />
-                            </div>
-                            <div class="flex-1">
-                                <h4 class="text-[10px] font-black text-[#34d399] tracking-widest uppercase mb-1">Local
-                                    Security Active</h4>
-                                <p class="text-[11px] text-white/30 font-bold leading-tight uppercase tracking-tighter">
-                                    Your voice data never leaves the local sandbox unless cloud engines are active.</p>
-                            </div>
+                        <div class="space-y-4">
+                            <Button
+                                class="w-full h-16 rounded-[2rem] bg-ava-purple hover:bg-[#6d28d9] text-white font-black text-[10px] tracking-[0.25em] uppercase shadow-[0_15px_40px_rgba(124,58,237,0.2)] gap-4 transition-all hover:scale-[1.02]">
+                                <Database class="w-4 h-4" />
+                                OPTIMIZE_LOCAL_WEIGHTS
+                            </Button>
+                            <Button variant="outline"
+                                class="w-full h-16 rounded-[2rem] border-white/5 bg-white/[0.02] text-white/30 hover:bg-white/[0.05] hover:text-white font-black text-[10px] tracking-[0.25em] uppercase gap-4 transition-all">
+                                <Download class="w-4 h-4" />
+                                SYNC_NEURAL_MODELS
+                            </Button>
                         </div>
                     </div>
                 </div>
             </TabsContent>
 
-            <!-- Brain Manager Tab -->
+            <!-- Brain Registry Tab -->
             <TabsContent value="brains" class="animate-in fade-in zoom-in-95 duration-500 outline-none">
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
                     <div class="lg:col-span-2 space-y-4">
@@ -186,7 +351,7 @@
                                 <div class="space-y-1">
                                     <div class="flex items-center gap-3">
                                         <h3 class="font-black text-lg text-white tracking-tight uppercase">{{ brain.name
-                                            }}</h3>
+                                        }}</h3>
                                         <div
                                             class="px-2 py-0.5 rounded-md bg-white/[0.05] text-[8px] font-black text-white/40 tracking-widest uppercase border border-white/[0.05]">
                                             {{ brain.provider }}</div>
@@ -194,10 +359,11 @@
                                     <div
                                         class="flex items-center gap-4 text-[9px] font-black tracking-[0.15em] uppercase">
                                         <span class="text-white/20">Privacy: <span class="text-white/40">{{
-                                                brain.privacy_level }}</span></span>
+                                            brain.privacy_level }}</span></span>
                                         <span class="w-1 h-1 bg-white/10 rounded-full"></span>
                                         <span class="text-white/20">State: <span
-                                                class="text-[#34d399]">OPTIMIZED</span></span>
+                                                :class="brain.health?.status === 'available' ? 'text-[#34d399]' : 'text-amber-500'">{{
+                                                    brain.health?.status?.toUpperCase() || 'UNKNOWN' }}</span></span>
                                     </div>
                                 </div>
                             </div>
@@ -252,221 +418,70 @@
                                 </div>
                             </div>
                         </Card>
-
-                        <div class="glass-panel p-8 rounded-[2.5rem] text-center border-ava-purple/5">
-                            <div class="mb-4 inline-flex p-4 rounded-3xl bg-ava-purple/5 text-ava-purple">
-                                <Database class="w-8 h-8" />
-                            </div>
-                            <p
-                                class="text-[10px] font-black text-white/30 leading-relaxed uppercase tracking-[0.2em] px-2 italic">
-                                AVA Kernel automatically handles intent classification locally for enhanced privacy.
-                            </p>
-                        </div>
                     </div>
                 </div>
             </TabsContent>
 
-            <!-- Intelligence Stack Tab -->
-            <TabsContent value="stack" class="animate-in fade-in zoom-in-95 duration-500 outline-none">
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
-                    <div class="lg:col-span-2 space-y-10">
-                        <Card class="cyber-card p-10 space-y-10">
-                            <div class="flex items-center gap-4 border-l-2 border-ava-purple pl-4">
-                                <h2 class="text-xl font-black text-white tracking-tight uppercase tracking-[0.1em]">
-                                    Inference Parameters</h2>
+            <!-- General Settings Tab -->
+            <TabsContent value="general" class="animate-in fade-in zoom-in-95 duration-500 outline-none">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                    <Card class="cyber-card p-10 space-y-10 group">
+                        <div class="flex items-center gap-4 border-l-2 border-ava-purple pl-4">
+                            <h2 class="text-xl font-black text-white tracking-tight uppercase tracking-[0.1em]">Identity
+                                & Voice</h2>
+                        </div>
+                        <div class="space-y-8">
+                            <div class="space-y-3">
+                                <Label
+                                    class="text-[9px] font-black text-white/20 tracking-[0.2em] uppercase ml-1">Assistant
+                                    Identifier</Label>
+                                <Input v-model="settings.NAME"
+                                    class="bg-white/[0.02] border-white/5 text-white h-14 rounded-2xl px-6 focus:border-ava-purple/50 focus:bg-white/[0.04] transition-all"
+                                    @change="saveSettings" />
                             </div>
-
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-10 mb-6">
-                                <div class="space-y-3">
-                                    <Label
-                                        class="text-[9px] font-black text-white/20 tracking-[0.2em] uppercase ml-1">Stack
-                                        Provider</Label>
-                                    <Select v-model="configValue.LLM_PROVIDER"
-                                        @update:modelValue="saveConfigSetting('LLM_PROVIDER', $event)">
-                                        <SelectTrigger
-                                            class="bg-white/[0.02] border-white/5 text-white h-16 rounded-2xl px-6 hover:bg-white/[0.04]">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent class="bg-[#0a0a0f] border-white/10 text-white rounded-xl">
-                                            <SelectItem value="google">Google Gemini Pro (Cloud)</SelectItem>
-                                            <SelectItem value="ollama">Ollama Llama Hub (Local)</SelectItem>
-                                            <SelectItem value="openai">OpenAI Neural API (Cloud)</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-
-                                <div class="space-y-3">
-                                    <Label
-                                        class="text-[9px] font-black text-white/20 tracking-[0.2em] uppercase ml-1">Active
-                                        Neural Weights</Label>
-                                    <Select v-model="configValue.MODEL_NAME"
-                                        @update:modelValue="saveConfigSetting('MODEL_NAME', $event)">
-                                        <SelectTrigger
-                                            class="bg-white/[0.02] border-white/5 text-white h-16 rounded-2xl px-6 hover:bg-white/[0.04]">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent class="bg-[#0a0a0f] border-white/10 text-white rounded-xl">
-                                            <SelectItem value="gemini-1.5-flash">Gemini Flash v1.5</SelectItem>
-                                            <SelectItem value="llama3:8b">Llama 3 Instruct (8B)</SelectItem>
-                                            <SelectItem value="llama3:70b">Llama 3 Frontier (70B)</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
+                            <div class="space-y-3">
+                                <Label
+                                    class="text-[9px] font-black text-white/20 tracking-[0.2em] uppercase ml-1">Neural
+                                    Wake Word</Label>
+                                <Input v-model="settings.WAKE_WORD"
+                                    class="bg-white/[0.02] border-white/5 text-white h-14 rounded-2xl px-6 focus:border-ava-purple/50 focus:bg-white/[0.04] transition-all"
+                                    @change="saveSettings" />
                             </div>
-
-                            <!-- Sliders -->
-                            <div class="space-y-12 pb-4">
-                                <div class="space-y-6">
-                                    <div class="flex justify-between items-end px-1">
-                                        <div class="space-y-1">
-                                            <Label
-                                                class="text-[10px] font-black text-white/40 tracking-[0.2em] uppercase">Spectral
-                                                Temperature</Label>
-                                            <p
-                                                class="text-[9px] text-white/10 font-black uppercase tracking-widest italic">
-                                                Controls creativity vs precision</p>
-                                        </div>
-                                        <span class="text-ava-purple font-mono font-black text-xl tabular-nums">{{
-                                            temp[0].toFixed(2) }}</span>
-                                    </div>
-                                    <Slider v-model="temp" :max="1" :step="0.01" class="py-2 spectral-slider"
-                                        @update:modelValue="saveConfigSetting('TEMPERATURE', temp[0])" />
-                                </div>
-
-                                <div class="space-y-6">
-                                    <div class="flex justify-between items-end px-1">
-                                        <div class="space-y-1">
-                                            <Label
-                                                class="text-[10px] font-black text-white/40 tracking-[0.2em] uppercase">Context
-                                                Buffer Window</Label>
-                                            <p
-                                                class="text-[9px] text-white/10 font-black uppercase tracking-widest italic">
-                                                Allocation of VRAM for conversation memory</p>
-                                        </div>
-                                        <span class="text-ava-purple font-mono font-black text-xl tabular-nums">{{
-                                            context[0].toLocaleString() }}</span>
-                                    </div>
-                                    <Slider v-model="context" :max="32768" :step="1024" class="py-2 spectral-slider"
-                                        @update:modelValue="saveConfigSetting('CONTEXT_WINDOW', context[0])" />
-                                </div>
-                            </div>
-                        </Card>
-
-                        <Card class="cyber-card p-10 space-y-10">
-                            <div class="flex items-center gap-4 border-l-2 border-ava-purple pl-4">
-                                <h2 class="text-xl font-black text-white tracking-tight uppercase tracking-[0.1em]">
-                                    Filesystem Mapping</h2>
-                            </div>
-
-                            <div class="space-y-10">
-                                <div class="space-y-3">
-                                    <Label
-                                        class="text-[9px] font-black text-white/20 tracking-[0.2em] uppercase ml-1">Kernel
-                                        Model Path</Label>
-                                    <div class="relative group">
-                                        <Input v-model="modelPath"
-                                            class="bg-white/[0.02] border-white/5 text-[#a78bfa] font-mono h-14 rounded-2xl px-6 focus:border-ava-purple/50 pr-12 transition-all hover:bg-white/[0.04]"
-                                            @change="saveConfigSetting('MODEL_PATH', modelPath)" />
-                                        <Folder
-                                            class="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/10 group-hover:text-ava-purple transition-colors" />
-                                    </div>
-                                </div>
-
-                                <div class="space-y-3">
-                                    <Label
-                                        class="text-[9px] font-black text-white/20 tracking-[0.2em] uppercase ml-1">Vector
-                                        DB Target</Label>
-                                    <div class="relative group">
-                                        <Input v-model="dbPath"
-                                            class="bg-white/[0.02] border-white/5 text-[#a78bfa] font-mono h-14 rounded-2xl px-6 focus:border-ava-purple/50 pr-12 transition-all hover:bg-white/[0.04]"
-                                            @change="saveConfigSetting('DB_PATH', dbPath)" />
-                                        <HardDrive
-                                            class="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/10 group-hover:text-ava-purple transition-colors" />
-                                    </div>
-                                </div>
-                            </div>
-                        </Card>
-                    </div>
+                        </div>
+                    </Card>
 
                     <div class="space-y-10">
-                        <!-- Acceleration Card -->
-                        <Card class="cyber-card p-10 space-y-10 overflow-hidden relative border-ava-purple/20">
-                            <div class="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
-                                <Pentagon class="w-32 h-32 text-ava-purple rotate-12" />
-                            </div>
-                            <div class="flex justify-between items-center relative z-10">
+                        <Card class="cyber-card p-10 space-y-10">
+                            <div class="flex items-center gap-4 border-l-2 border-[#34d399] pl-4">
                                 <h2 class="text-xl font-black text-white tracking-tight uppercase tracking-[0.1em]">
-                                    Telemetry</h2>
-                                <div class="flex items-center gap-2">
-                                    <div class="w-1.5 h-1.5 bg-[#34d399] rounded-full neon-pulse"></div>
-                                    <span
-                                        class="text-[9px] font-black text-[#34d399] tracking-widest uppercase">REAL_TIME</span>
-                                </div>
+                                    Engine Parameters</h2>
                             </div>
-
-                            <div class="space-y-10 relative z-10">
-                                <!-- NPU -->
-                                <div class="space-y-4">
-                                    <div
-                                        class="flex justify-between items-center text-[10px] font-black tracking-widest uppercase">
-                                        <span class="text-white/30 italic">NPU Acceleration</span>
-                                        <span class="text-ava-purple tabular-nums">{{ intStats.npu_acceleration
-                                            }}%</span>
-                                    </div>
-                                    <div
-                                        class="h-1.5 w-full bg-white/[0.03] rounded-full overflow-hidden p-[1px] border border-white/[0.05]">
-                                        <div class="h-full bg-gradient-to-r from-ava-purple to-[#9333ea] rounded-full shadow-[0_0_15px_rgba(124,58,237,0.5)] transition-all duration-1000"
-                                            :style="{ width: intStats.npu_acceleration + '%' }"></div>
-                                    </div>
+                            <div class="space-y-8">
+                                <div class="space-y-3">
+                                    <Label
+                                        class="text-[9px] font-black text-white/20 tracking-[0.2em] uppercase ml-1">Universal
+                                        API Access</Label>
+                                    <Input v-model="settings.API_KEY" type="password"
+                                        class="bg-white/[0.02] border-white/5 text-white h-14 rounded-2xl px-6 font-mono focus:border-ava-purple/50 transition-all"
+                                        placeholder="GEMINI_PRIVATE_KEY_••••••••" @change="saveSettings" />
                                 </div>
-
-                                <!-- VRAM -->
-                                <div class="space-y-4">
-                                    <div
-                                        class="flex justify-between items-center text-[10px] font-black tracking-widest uppercase">
-                                        <span class="text-white/30 italic">Neural VRAM Pool</span>
-                                        <span class="text-ava-purple tabular-nums">{{ vramFormatted }}</span>
-                                    </div>
-                                    <div
-                                        class="h-1.5 w-full bg-white/[0.03] rounded-full overflow-hidden p-[1px] border border-white/[0.05]">
-                                        <div class="h-full bg-gradient-to-r from-ava-purple to-[#9333ea] rounded-full shadow-[0_0_15px_rgba(124,58,237,0.5)] transition-all duration-1000"
-                                            :style="{ width: sysStats.vram + '%' }"></div>
-                                    </div>
-                                </div>
-
-                                <div class="grid grid-cols-2 gap-4 mt-4">
-                                    <div
-                                        class="glass-panel p-6 rounded-3xl text-center space-y-2 border-white/[0.01] hover:bg-white/[0.03] transition-all">
-                                        <div class="text-[8px] font-black text-white/10 tracking-[0.2em] uppercase">
-                                            TOKEN_FLOW</div>
-                                        <div class="text-3xl font-black text-white tracking-tighter tabular-nums">{{
-                                            intStats.tokens_sec }}<span class="text-xs text-white/20 ml-1">s</span>
-                                        </div>
-                                    </div>
-                                    <div
-                                        class="glass-panel p-6 rounded-3xl text-center space-y-2 border-white/[0.01] hover:bg-white/[0.03] transition-all">
-                                        <div class="text-[8px] font-black text-white/10 tracking-[0.2em] uppercase">
-                                            LATENCY</div>
-                                        <div class="text-3xl font-black text-white tracking-tighter tabular-nums">{{
-                                            intStats.latency }}<span class="text-xs text-white/20 ml-1">ms</span></div>
-                                    </div>
+                                <div class="space-y-3">
+                                    <Label
+                                        class="text-[9px] font-black text-white/20 tracking-[0.2em] uppercase ml-1">Speech
+                                        Synthesis Engine</Label>
+                                    <Select v-model="settings.TTS_ENGINE" @update:modelValue="saveSettings">
+                                        <SelectTrigger
+                                            class="bg-white/[0.02] border-white/5 text-white h-14 rounded-2xl px-6">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent class="bg-[#0a0a0f] border-white/10 text-white rounded-xl">
+                                            <SelectItem value="piper">Piper (Native/Local)</SelectItem>
+                                            <SelectItem value="gtts">Google Cloud (Cloud)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
                                 </div>
                             </div>
                         </Card>
-
-                        <!-- Actions -->
-                        <div class="space-y-4">
-                            <Button
-                                class="w-full h-16 rounded-[2rem] bg-ava-purple hover:bg-[#6d28d9] text-white font-black text-[10px] tracking-[0.25em] uppercase shadow-[0_15px_40px_rgba(124,58,237,0.2)] gap-4 transition-all hover:-translate-y-1">
-                                <Database class="w-4 h-4" />
-                                REBUILD_VECTOR_CORE
-                            </Button>
-                            <Button variant="outline"
-                                class="w-full h-16 rounded-[2rem] border-white/5 bg-white/[0.02] text-white/30 hover:bg-white/[0.05] hover:text-white font-black text-[10px] tracking-[0.25em] uppercase gap-4 transition-all">
-                                <Download class="w-4 h-4" />
-                                PULL_NEURAL_WEIGHTS
-                            </Button>
-                        </div>
                     </div>
                 </div>
             </TabsContent>
@@ -482,7 +497,8 @@
                 </div>
                 <div class="opacity-50">DRIVER: NVIDIA_CUDA_12.4.X</div>
             </div>
-            <div class="hover:text-white/40 transition-colors cursor-help">AVA_INTEL_SYSTEM_V2.5.0-STABLE.ARC_64</div>
+            <div class="hover:text-white/40 transition-colors cursor-help italic">AVA_INTEL_SYSTEM_V2.5.0-STABLE.ARC_64
+            </div>
         </div>
     </div>
 </template>
@@ -491,12 +507,12 @@
 import {
     RefreshCw, Folder, Settings, Cpu,
     ShieldCheck, Database, Download, Brain,
-    Pentagon, HardDrive
+    Pentagon, HardDrive, AlertTriangle
 } from 'lucide-vue-next'
 
 const { $ava } = useNuxtApp()
 
-const activeTab = ref('general')
+const activeTab = ref('stack')
 
 // Websocket State
 const configValue = computed(() => $ava?.state?.config || {})
@@ -508,6 +524,27 @@ const fallbackBrainId = computed(() => $ava?.state?.fallbackBrainId)
 const rulesOnly = computed(() => $ava?.state?.rulesOnly)
 const autoSelection = computed(() => $ava?.state?.autoSelection)
 const appSettings = computed(() => $ava?.state?.appSettings || {})
+
+// Computed Helpers
+const activeBrain = computed(() => brains.value.find(b => b.id === activeBrainId.value))
+
+// Dynamic Brain Config Reactive State
+const brainConfigState = reactive({})
+const brainSliderRefs = reactive({})
+
+// Initialize Brain Config state when active brain changes
+watch(activeBrain, (newBrain) => {
+    if (newBrain && newBrain.config_data) {
+        Object.entries(newBrain.config_data).forEach(([key, val]) => {
+            brainConfigState[key] = val
+            // Also update slider refs (Slider expects Array)
+            const schemaField = newBrain.config_schema?.find(f => f.name === key)
+            if (schemaField && (schemaField.type === 'float' || schemaField.type === 'int')) {
+                brainSliderRefs[key] = [val]
+            }
+        })
+    }
+}, { immediate: true, deep: true })
 
 // Local Form State
 const settings = reactive({
@@ -528,15 +565,11 @@ watch(appSettings, (newVal) => {
 }, { immediate: true, deep: true })
 
 // Intelligence Stack Local state
-const temp = ref([0.72])
-const context = ref([8192])
-const modelPath = ref('/home/user/.local/share/ava/models/llama3-8b.gguf')
+const modelPath = ref('/home/ghost/.local/share/ava/models/llama3-8b.gguf')
 const dbPath = ref('/var/lib/ava/chromadb/knowledge_base_01')
 
 // Sync local refs when config loads
 watch(configValue, (newVal) => {
-    if (newVal.TEMPERATURE !== undefined) temp.value = [newVal.TEMPERATURE]
-    if (newVal.CONTEXT_WINDOW !== undefined) context.value = [newVal.CONTEXT_WINDOW]
     if (newVal.MODEL_PATH) modelPath.value = newVal.MODEL_PATH
     if (newVal.DB_PATH) dbPath.value = newVal.DB_PATH
 }, { immediate: true, deep: true })
@@ -548,6 +581,12 @@ const saveSettings = () => {
 
 const saveConfigSetting = (key, value) => {
     $ava.updateConfig(key, value)
+}
+
+const saveBrainConfig = () => {
+    if (activeBrainId.value) {
+        $ava.updateBrainConfig(activeBrainId.value, { ...brainConfigState })
+    }
 }
 
 const setPrimary = (id) => {
