@@ -6,6 +6,53 @@
     body {
         @apply bg-ava-bg text-ava-text font-sans antialiased overflow-hidden;
     }
+
+    :root {
+        --background: 240 10% 3.9%;
+        /* ava-bg approximation */
+        --foreground: 0 0% 98%;
+        --card: 240 10% 4.5%;
+        --card-foreground: 0 0% 98%;
+        --popover: 240 10% 3.9%;
+        --popover-foreground: 0 0% 98%;
+        --primary: 270 91% 65%;
+        /* ava-purple approximation */
+        --primary-foreground: 0 0% 100%;
+        --secondary: 240 10% 15%;
+        --secondary-foreground: 0 0% 98%;
+        --muted: 240 5% 15%;
+        --muted-foreground: 240 5% 65%;
+        --accent: 270 91% 65%;
+        --accent-foreground: 0 0% 100%;
+        --destructive: 0 62.8% 30.6%;
+        --destructive-foreground: 0 0% 98%;
+        --border: 240 10% 15%;
+        --input: 240 10% 15%;
+        --ring: 270 91% 65%;
+        --radius: 1rem;
+    }
+
+    .dark {
+        --background: 240 10% 3.9%;
+        --foreground: 0 0% 98%;
+        --card: 240 10% 4.5%;
+        --card-foreground: 0 0% 98%;
+        --popover: 240 10% 3.9%;
+        --popover-foreground: 0 0% 98%;
+        --primary: 270 91% 65%;
+        --primary-foreground: 0 0% 100%;
+        --secondary: 240 10% 15%;
+        --secondary-foreground: 0 0% 98%;
+        --muted: 240 5% 15%;
+        --muted-foreground: 240 5% 65%;
+        --accent: 270 91% 65%;
+        --accent-foreground: 0 0% 100%;
+        --destructive: 0 62.8% 30.6%;
+        --destructive-foreground: 0 0% 98%;
+        --border: 240 10% 15%;
+        --input: 240 10% 15%;
+        --ring: 270 91% 65%;
+    }
 }
 
 @layer components {
@@ -40,4 +87,16 @@
 .fade-enter-from,
 .fade-leave-to {
     opacity: 0;
+}
+
+
+
+@layer base {
+    * {
+        @apply border-border;
+    }
+
+    body {
+        @apply bg-background text-foreground;
+    }
 }
