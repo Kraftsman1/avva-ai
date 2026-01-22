@@ -59,31 +59,60 @@ class OllamaBrain(BaseBrain):
             
             # Try to list models
             models_response = ollama.list()
-            available_models = [model['name'] for model in models_response.get('models', [])]
+            # Handle different response formats (newer ollama-python versions return an object)
+            if hasattr(models_response, 'models'):
+                models = models_response.models
+                available_models = [m.model for m in models] if hasattr(models[0], 'model') else [m.name for m in models]
+            else:
+                available_models = [model['name'] for model in models_response.get('models', [])]
             
-            # Check if configured model is available
-            if self.model not in available_models:
+            if not available_models:
                 return BrainHealth(
                     status=BrainStatus.MISCONFIGURED,
-                    message=f"Model '{self.model}' not found. Available: {', '.join(available_models)}",
-                    available_models=available_models
+                    message="Ollama server running but no models found. Run 'ollama pull llama3' in terminal.",
+                    available_models=[]
                 )
+
+            # Check if configured model is available (exact match)
+            if self.model in available_models:
+                import time
+                start = time.time()
+                try:
+                    ollama.chat(
+                        model=self.model,
+                        messages=[{"role": "user", "content": "test"}],
+                        options={"num_predict": 1}
+                    )
+                    latency = (time.time() - start) * 1000
+                    return BrainHealth(
+                        status=BrainStatus.AVAILABLE,
+                        message=f"Ollama ready with model '{self.model}'",
+                        available_models=available_models,
+                        latency_ms=latency
+                    )
+                except Exception as e:
+                    # If listing worked but chat failed (e.g., OOM), we still consider the provider AVAILABLE
+                    # so the user can switch capabilities or models in the UI.
+                    error_msg = str(e)
+                    if "memory" in error_msg.lower():
+                        msg = f"Ollama connected, but '{self.model}' is too large for your RAM. Please select a smaller model."
+                    else:
+                        msg = f"Ollama connected, but inference failed: {error_msg}"
+                        
+                    return BrainHealth(
+                        status=BrainStatus.AVAILABLE,
+                        message=msg,
+                        available_models=available_models
+                    )
             
-            # Try a quick test request
-            import time
-            start = time.time()
-            ollama.chat(
-                model=self.model,
-                messages=[{"role": "user", "content": "test"}],
-                options={"num_predict": 1}
-            )
-            latency = (time.time() - start) * 1000
+            # Fuzzy match or suggest
+            suggestions = [m for m in available_models if self.model.lower() in m.lower()]
+            best_match = suggestions[0] if suggestions else available_models[0]
             
             return BrainHealth(
-                status=BrainStatus.AVAILABLE,
-                message=f"Ollama ready with model '{self.model}'",
-                available_models=available_models,
-                latency_ms=latency
+                status=BrainStatus.MISCONFIGURED,
+                message=f"Model '{self.model}' not found. Did you mean '{best_match}'? Select from dropdown below.",
+                available_models=available_models
             )
             
         except ImportError:

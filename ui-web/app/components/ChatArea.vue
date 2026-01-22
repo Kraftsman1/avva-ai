@@ -94,6 +94,32 @@
           </div>
         </div>
       </div>
+
+      <!-- Thinking Indicator Bubble -->
+      <div v-if="isThinking" class="flex flex-col items-start animate-in fade-in duration-300 mt-12 pl-10">
+        <div class="max-w-[88%] lg:max-w-[80%] flex items-start gap-6">
+          <!-- Icon for AVA -->
+          <div
+            class="w-12 h-12 rounded-2xl bg-black border border-ava-purple/20 flex items-center justify-center shadow-[0_0_20px_rgba(124,58,237,0.1)] shrink-0 mt-1">
+            <Bot :size="24" class="text-ava-purple animate-pulse" />
+          </div>
+
+          <div class="flex flex-col items-start">
+            <!-- Attribution -->
+            <span class="text-[9px] font-black tracking-[0.25em] uppercase mb-3 px-1 text-ava-purple/50 animate-pulse">
+              NEURAL_PROCESSING
+            </span>
+            <!-- Content Bubble -->
+            <div
+              class="p-4 rounded-[2.5rem] rounded-tl-none border border-white/[0.02] bubble-ava flex items-center gap-2">
+              <div class="w-1.5 h-1.5 bg-ava-purple rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+              <div class="w-1.5 h-1.5 bg-ava-purple rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+              <div class="w-1.5 h-1.5 bg-ava-purple rounded-full animate-bounce"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </ScrollArea>
 </template>
@@ -103,6 +129,23 @@ import { Bot, Copy } from 'lucide-vue-next'
 
 const { $ava } = useNuxtApp()
 const scrollContainer = ref(null)
+
+const isThinking = computed(() => $ava?.state?.assistantState === 'thinking')
+
+// Auto-scroll when thinking state changes
+watch(isThinking, (newVal) => {
+  if (newVal) {
+    nextTick(() => {
+      const viewport = scrollContainer.value?.$el?.querySelector('[data-radix-scroll-area-viewport]')
+      if (viewport) {
+        viewport.scrollTo({
+          top: viewport.scrollHeight,
+          behavior: 'smooth'
+        })
+      }
+    })
+  }
+})
 
 const currentSessionLabel = 'NEURAL_INTEGRATION_LAYER'
 

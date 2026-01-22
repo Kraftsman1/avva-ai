@@ -81,10 +81,36 @@ export default defineNuxtPlugin(() => {
                     state.fallbackBrainId = payload.fallback_id
                     state.rulesOnly = payload.rules_only
                     state.autoSelection = payload.auto_selection
+
+                    // Sync active model name
+                    if (state.activeBrainId) {
+                        const activeBrain = state.brains.find((b: any) => b.id === state.activeBrainId)
+                        if (activeBrain) {
+                            // Check config_data first for specific model
+                            if (activeBrain.config_data?.model) {
+                                state.activeModel = activeBrain.config_data.model
+                            } else {
+                                state.activeModel = activeBrain.name || activeBrain.provider
+                            }
+                        }
+                    }
                     break
                 case 'brains.updated':
                     state.activeBrainId = payload.active_id
                     state.fallbackBrainId = payload.fallback_id
+
+                    // Sync active model name
+                    if (state.activeBrainId) {
+                        const activeBrain = state.brains.find((b: any) => b.id === state.activeBrainId)
+                        if (activeBrain) {
+                            // Check config_data first for specific model
+                            if (activeBrain.config_data?.model) {
+                                state.activeModel = activeBrain.config_data.model
+                            } else {
+                                state.activeModel = activeBrain.name || activeBrain.provider
+                            }
+                        }
+                    }
                     break
                 case 'brains.mode_updated':
                     state.rulesOnly = payload.rules_only

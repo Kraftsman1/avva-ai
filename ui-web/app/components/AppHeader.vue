@@ -18,6 +18,20 @@
       </NuxtLink>
     </div>
 
+    <!-- Central Status Indicator -->
+    <div
+      class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-3 bg-white/[0.03] px-4 py-2 rounded-full border border-white/[0.05] backdrop-blur-sm">
+      <div class="relative flex h-2.5 w-2.5">
+        <span v-if="assistantState !== 'idle'"
+          class="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" :class="statusColor"></span>
+        <span class="relative inline-flex rounded-full h-2.5 w-2.5" :class="statusColor"></span>
+      </div>
+      <span class="text-[10px] font-black tracking-[0.2em] uppercase transition-colors duration-300"
+        :class="statusTextColor">
+        {{ assistantState }}
+      </span>
+    </div>
+
     <div class="flex items-center gap-6">
       <div class="flex items-center gap-2 border-r border-white/[0.03] pr-6">
         <Button variant="ghost" size="icon" class="h-8 w-8 text-white/40 hover:text-white hover:bg-white/5 rounded-lg">
@@ -46,4 +60,24 @@
 <script setup>
 import { Settings, Maximize2, X } from 'lucide-vue-next'
 const { $ava } = useNuxtApp()
+
+const assistantState = computed(() => $ava?.state?.assistantState || 'idle')
+
+const statusColor = computed(() => {
+  switch (assistantState.value) {
+    case 'listening': return 'bg-red-500'
+    case 'thinking': return 'bg-amber-400'
+    case 'speaking': return 'bg-emerald-400'
+    default: return 'bg-slate-500' // idle
+  }
+})
+
+const statusTextColor = computed(() => {
+  switch (assistantState.value) {
+    case 'listening': return 'text-red-500'
+    case 'thinking': return 'text-amber-400'
+    case 'speaking': return 'text-emerald-400'
+    default: return 'text-slate-500' // idle
+  }
+})
 </script>

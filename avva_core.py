@@ -41,6 +41,21 @@ def main():
     print("✨ Core is active. Press Ctrl+C to shutdown.")
     
     try:
+        # Start a simple input thread for text-based debugging
+        import threading
+        def input_loop():
+            while True:
+                try:
+                    text = input()
+                    if text:
+                        print(f"⌨  Manual Input: {text}")
+                        assistant.process_command(text)
+                except EOFError:
+                    break
+        
+        t = threading.Thread(target=input_loop, daemon=True)
+        t.start()
+        
         while True:
             time.sleep(1)
     except KeyboardInterrupt:

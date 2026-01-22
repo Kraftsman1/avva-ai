@@ -81,13 +81,18 @@ class LMStudioBrain(BaseBrain):
             if not available_models:
                 return BrainHealth(
                     status=BrainStatus.MISCONFIGURED,
-                    message="LM Studio server running but no models loaded",
+                    message="LM Studio server running but no models loaded. Please load a model in LM Studio.",
                     available_models=[]
                 )
             
+            # If current model is "local-model" (default) but others are available, suggest them
+            msg = f"LM Studio ready with {len(available_models)} model(s)"
+            if self.model == "local-model" and available_models:
+                msg = f"LM Studio connected. Please select a loaded model (e.g., '{available_models[0]}') from dropdown."
+            
             return BrainHealth(
-                status=BrainStatus.AVAILABLE,
-                message=f"LM Studio ready with {len(available_models)} model(s)",
+                status=BrainStatus.AVAILABLE if self.model in available_models else BrainStatus.MISCONFIGURED,
+                message=msg if self.model in available_models else f"Model '{self.model}' not loaded in LM Studio.",
                 available_models=available_models,
                 latency_ms=latency
             )

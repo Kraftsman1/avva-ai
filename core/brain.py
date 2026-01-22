@@ -12,6 +12,7 @@ from core.brains.ollama_brain import OllamaBrain
 from core.brains.google_brain import GoogleBrain
 from core.brains.openai_brain import OpenAIBrain
 from core.brains.claude_brain import ClaudeBrain
+from core.brains.lmstudio_brain import LMStudioBrain
 from core.context_filter import ContextFilter
 from core.config import config
 from core.persistence import storage
@@ -54,6 +55,30 @@ class Brain:
         else:
             # First run - migrate from legacy config
             self._migrate_legacy_config()
+            
+        # Ensure LM Studio is registered if not already there
+        if "lmstudio_default" not in self.manager.registry:
+            self._register_default_lmstudio()
+            
+    def _register_default_lmstudio(self):
+        """Register a default LM Studio brain."""
+        brain_config = BrainConfig(
+            id="lmstudio_default",
+            name="LM Studio",
+            provider="lmstudio",
+            config_data={
+                "endpoint": "http://localhost:1234/v1",
+                "model": "local-model",
+                "temperature": 0.2,
+                "max_tokens": 1024
+            },
+            is_active=False,
+            is_fallback=False
+        )
+        brain = LMStudioBrain(brain_config)
+        self.manager.register_brain(brain)
+        # Also persist it
+        self._save_brain_to_db(brain)
     
     def _restore_brain(self, brain_data):
         """Restore a Brain from saved configuration."""
@@ -76,6 +101,8 @@ class Brain:
                 brain = OpenAIBrain(brain_config)
             elif brain_data['provider'] == 'claude':
                 brain = ClaudeBrain(brain_config)
+            elif brain_data['provider'] == 'lmstudio':
+                brain = LMStudioBrain(brain_config)
             else:
                 print(f"⚠️ Unknown Brain provider: {brain_data['provider']}")
                 return
@@ -241,6 +268,8 @@ class Brain:
         if not brain:
             return "I heard you, but I couldn't find a direct skill match and no Brain is available."
         
+        print(f"DEBUG: Active Brain Selected: {brain.name} ({brain.provider})")
+        
         # Filter context based on Brain's privacy level
         filtered_context = ContextFilter.filter_for_privacy_level(
             context,
@@ -249,7 +278,9 @@ class Brain:
         )
         
         # Execute with Brain
+        print(f"DEBUG: Executing with {brain.name}...")
         brain_response = brain.execute(command, filtered_context, {})
+        print(f"DEBUG: Brain Response Success: {brain_response.success}")
         
         # Log usage if applicable
         if brain_response.tokens_used and brain_response.cost_usd:
@@ -257,6 +288,7 @@ class Brain:
         
         # Handle response
         if not brain_response.success:
+            print(f"DEBUG: Brain Execution Failed: {brain_response.error}")
             return brain_response.error or "Brain execution failed"
         
         # If Brain extracted an intent, execute it

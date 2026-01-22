@@ -104,7 +104,7 @@
                                     <div class="flex justify-between items-end px-1">
                                         <Label
                                             class="text-[10px] font-black text-white/30 tracking-[0.2em] uppercase">{{
-                                            field.name.replace('_', ' ') }}</Label>
+                                                field.name.replace('_', ' ') }}</Label>
                                         <span v-if="field.type !== 'string' && field.type !== 'bool'"
                                             class="text-ava-purple font-mono font-black text-sm tabular-nums">
                                             {{ brainConfigState[field.name] }}
@@ -119,10 +119,16 @@
                                                 @update:modelValue="saveBrainConfig">
                                                 <SelectTrigger
                                                     class="bg-white/[0.02] border-white/5 text-white h-14 rounded-2xl px-6 hover:bg-white/[0.04]">
-                                                    <SelectValue />
+                                                    <SelectValue
+                                                        :placeholder="brainConfigState[field.name] || 'SELECT_MODEL'" />
                                                 </SelectTrigger>
                                                 <SelectContent
                                                     class="bg-[#0a0a0f] border-white/10 text-white rounded-xl">
+                                                    <SelectItem
+                                                        v-if="brainConfigState[field.name] && !activeBrain.health.available_models.includes(brainConfigState[field.name])"
+                                                        :value="brainConfigState[field.name]" class="opacity-50 italic">
+                                                        {{ brainConfigState[field.name] }} (Missing)
+                                                    </SelectItem>
                                                     <SelectItem v-for="m in activeBrain.health.available_models"
                                                         :key="m" :value="m">
                                                         {{ m }}
@@ -264,7 +270,7 @@
                                         </div>
                                         <span class="text-[8px] text-white/20 font-mono">{{
                                             activeBrain.health.latency_ms ?
-                                            activeBrain.health.latency_ms.toFixed(0) + 'ms' : '---' }}</span>
+                                                activeBrain.health.latency_ms.toFixed(0) + 'ms' : '---' }}</span>
                                     </div>
                                 </div>
 
@@ -273,7 +279,7 @@
                                         class="flex justify-between items-center text-[10px] font-black tracking-widest uppercase">
                                         <span class="text-white/30 italic">NPU Core Load</span>
                                         <span class="text-ava-purple tabular-nums">{{ intStats.npu_acceleration
-                                            }}%</span>
+                                        }}%</span>
                                     </div>
                                     <div
                                         class="h-1.5 w-full bg-white/[0.03] rounded-full overflow-hidden p-[1px] border border-white/[0.05]">
@@ -302,7 +308,7 @@
                                             TOKEN_VELOCITY</div>
                                         <div class="text-3xl font-black text-white tracking-tighter tabular-nums">{{
                                             intStats.tokens_sec
-                                            }}<span class="text-xs text-white/20 ml-1 italic">/s</span></div>
+                                        }}<span class="text-xs text-white/20 ml-1 italic">/s</span></div>
                                     </div>
                                     <div
                                         class="glass-panel p-6 rounded-3xl text-center space-y-2 border-white/[0.01] hover:bg-white/[0.03] transition-all">
@@ -310,7 +316,7 @@
                                             LINK_LATENCY</div>
                                         <div class="text-3xl font-black text-white tracking-tighter tabular-nums">{{
                                             intStats.latency
-                                            }}<span class="text-xs text-white/20 ml-1 italic">ms</span></div>
+                                        }}<span class="text-xs text-white/20 ml-1 italic">ms</span></div>
                                     </div>
                                 </div>
                             </div>
@@ -351,7 +357,7 @@
                                 <div class="space-y-1">
                                     <div class="flex items-center gap-3">
                                         <h3 class="font-black text-lg text-white tracking-tight uppercase">{{ brain.name
-                                        }}</h3>
+                                            }}</h3>
                                         <div
                                             class="px-2 py-0.5 rounded-md bg-white/[0.05] text-[8px] font-black text-white/40 tracking-widest uppercase border border-white/[0.05]">
                                             {{ brain.provider }}</div>
