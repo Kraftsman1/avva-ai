@@ -48,7 +48,7 @@
     <div class="mt-8">
       <div class="bg-ava-bg-elevated/40 border border-white/5 rounded-2xl p-4 flex flex-col gap-1">
         <span class="text-[10px] font-black text-ava-neon tracking-widest mb-1">STABLE BRAIN ACTIVE</span>
-        <span class="text-sm font-bold text-white">{{ $ava.state.activeModel }}</span>
+        <span class="text-sm font-bold text-white">{{ $ava?.state?.activeModel || 'Llama-3-8B-Instruct' }}</span>
         <span class="text-[10px] text-ava-text-muted font-mono">v1.5.0-LOCAL-FP16</span>
       </div>
     </div>
@@ -68,5 +68,5 @@ const navItems = [
   { label: 'SETTINGS', icon: Settings, active: false },
 ]
 
-const stats = computed(() => $ava.state.systemStats)
+const stats = computed(() => $ava?.state?.systemStats || { cpu: 0, ram: 0, vram: 0 })
 </script>

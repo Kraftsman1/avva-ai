@@ -20,8 +20,10 @@ modules:
   - name: ava
     buildsystem: simple
     build-commands:
-      # This assumes the binary is already built and located in the build directory
-      - install -D ava /app/bin/ava
+      - install -D app /app/bin/ava
+      - install -D avva-core-x86_64-unknown-linux-gnu /app/bin/avva-core-x86_64-unknown-linux-gnu
     sources:
       - type: file
-        path: ui-web/src-tauri/target/release/ava
+        path: ui-web/src-tauri/target/release/app
+      - type: file
+        path: ui-web/src-tauri/sidecars/avva-core-x86_64-unknown-linux-gnu

@@ -2,6 +2,7 @@ import asyncio
 import websockets
 import threading
 import psutil
+import json
 from datetime import datetime
 from core.assistant import assistant
 
@@ -22,6 +23,7 @@ class WebSocketServer:
         self.clients.add(websocket)
         print(f"🔌 Client connected: {websocket.remote_address}")
         # Send initial state
+        import json
         await websocket.send(json.dumps({
             "type": "assistant.state",
             "payload": {"state": assistant.state},
@@ -36,6 +38,7 @@ class WebSocketServer:
         if not self.clients:
             return
             
+        import json
         message = json.dumps(message_dict)
         # Create a copy of clients to avoid issues if set changes during iteration
         await asyncio.gather(*[client.send(message) for client in self.clients])

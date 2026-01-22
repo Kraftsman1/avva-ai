@@ -1,17 +1,24 @@
 export default defineNuxtPlugin(() => {
+    interface Message {
+        id: number
+        text: string
+        sender: 'user' | 'avva'
+        data?: any
+    }
+
     const state = reactive({
         assistantState: 'idle',
-        messages: [],
+        messages: [] as Message[],
         systemStats: { cpu: 0, ram: 0, vram: 0 },
         activeModel: 'Llama-3-8B-Instruct',
         isConnected: false
     })
 
-    let ws = null
-    let reconnectTimer = null
+    let ws: WebSocket | null = null
+    let reconnectTimer: any = null
 
     const connect = () => {
-        if (process.server) return
+        if (typeof window === 'undefined') return
 
         console.log('🔌 Connecting to AVA Core WebSocket...')
         ws = new WebSocket('ws://localhost:8765')
@@ -19,10 +26,10 @@ export default defineNuxtPlugin(() => {
         ws.onopen = () => {
             state.isConnected = true
             console.log('✅ Connected to AVA Core')
-            clearTimeout(reconnectTimer)
+            if (reconnectTimer) clearTimeout(reconnectTimer)
         }
 
-        ws.onmessage = (event) => {
+        ws.onmessage = (event: MessageEvent) => {
             const { type, payload } = JSON.parse(event.data)
 
             switch (type) {
@@ -38,9 +45,13 @@ export default defineNuxtPlugin(() => {
                     })
                     break
                 case 'assistant.command':
-                    // Also track commands sent from other clients if needed
+                    state.messages.push({
+                        id: Date.now(),
+                        text: payload.command,
+                        sender: 'user'
+                    })
                     break
-                case 'system.stats': // We'll add this broadcast to the core later
+                case 'system.stats':
                     state.systemStats = payload
                     break
             }
@@ -57,15 +68,10 @@ export default defineNuxtPlugin(() => {
         }
     }
 
-    const sendCommand = (command) => {
+    const sendCommand = (command: string) => {
         if (ws && ws.readyState === WebSocket.OPEN) {
-            // Add local message immediately for responsiveness
-            state.messages.push({
-                id: Date.now(),
-                text: command,
-                sender: 'user'
-            })
-
+            // We no longer push locally here to avoid duplication.
+            // The server will broadcast the command back to us.
             ws.send(JSON.stringify({
                 type: 'assistant.command',
                 payload: { command }
@@ -74,7 +80,7 @@ export default defineNuxtPlugin(() => {
     }
 
     // Auto-connect on client init
-    if (process.client) {
+    if (typeof window !== 'undefined') {
         connect()
     }
 

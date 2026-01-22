@@ -12,10 +12,10 @@ def listen():
     
     try:
         print(f"Listening for {duration} seconds...")
-        # Record audio
-        # Note: We use int16 for compatibility with SpeechRecognition
-        recording = sd.rec(int(duration * fs), samplerate=fs, channels=1, dtype='int16')
-        sd.wait()  # Wait until recording is finished
+        # Record audio using InputStream for better stability
+        with sd.InputStream(samplerate=fs, channels=1, dtype='int16') as stream:
+            recording, overflowed = stream.read(int(duration * fs))
+        
         print("Processing...")
 
         # Convert the NumPy array to a WAV file in memory
