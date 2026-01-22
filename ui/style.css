@@ -1,455 +1,305 @@
-/* AVVA Dashboard Styles - Shadcn/Tailwind Inspired */
+/* AVA Dashboard Styles - Cyberpunk Command Center V2 */
 
+/* --- GLOBAL THEME --- */
 window {
-    background-color: #09090b;
-    color: #fafafa;
+    background-color: #0c0c14;
+    color: #e2e2e9;
 }
 
 .main-layout {
-    margin: 0;
+    background-color: transparent;
 }
 
-/* --- HEADER --- */
-.header {
-    padding: 16px 24px;
-    background-color: #09090b;
-    border-bottom: 1px solid #27272a;
+/* --- COMMAND HEADER --- */
+.command-header {
+    background-color: #0c0c14;
+    padding: 15px 30px;
+    /* Slimmer header for V2 */
+    border-bottom: 1px solid rgba(168, 85, 247, 0.1);
 }
 
-.title-label {
-    font-size: 14px;
-    font-weight: 600;
+.brand-logo {
+    font-size: 24px;
+    color: #a855f7;
+    text-shadow: 0 0 10px rgba(168, 85, 247, 0.4);
+}
+
+.brand-title {
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    color: #f1f1f7;
+}
+
+.engine-status-dot {
+    color: #22c55e;
+    font-size: 7px;
+    margin-bottom: 2px;
+}
+
+.engine-status-text {
+    font-size: 10px;
+    font-weight: 700;
+    color: #71717a;
+    letter-spacing: 0.5px;
+}
+
+.header-ctrl-btn {
+    background-color: #181826;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 6px 12px;
+    color: #a1a1aa;
+    font-size: 16px;
+}
+
+.header-ctrl-btn:hover {
+    background-color: #27273a;
     color: #fafafa;
 }
 
-.control-btn {
-    min-width: 40px;
-    min-height: 40px;
-    border-radius: 6px;
-    background-color: #18181b;
-    border: 1px solid #27272a;
-    font-size: 16px;
+.header-avatar {
+    font-size: 24px;
+    margin-left: 10px;
+}
+
+/* --- SIDEBAR --- */
+.sidebar {
+    background-color: #11111b;
+    border-right: 1px solid rgba(168, 85, 247, 0.05);
+}
+
+.sidebar-section-header {
+    font-size: 11px;
+    font-weight: 800;
+    color: #52525b;
+    /* Muted color from V2 */
+    letter-spacing: 1px;
+}
+
+/* System Pulse Widget */
+.pulse-label {
+    font-size: 12px;
+    font-weight: 600;
     color: #a1a1aa;
 }
 
-.control-btn:hover {
-    background-color: #27272a;
-    border-color: #3f3f46;
+.pulse-value {
+    font-size: 12px;
+    font-weight: 700;
+    color: #fafafa;
 }
 
-.control-btn:active {
-    background-color: #3f3f46;
-}
-
-/* --- THE ORB --- */
-.orb-container {
-    padding: 24px;
-    background-color: #09090b;
-}
-
-.orb {
-    min-width: 100px;
-    min-height: 100px;
-    border-radius: 50px;
-    background-color: #18181b;
-    border: 2px solid #27272a;
-    transition: all 0.5s ease;
-}
-
-.orb.listening {
-    background-color: #1e3a8a;
-    border-color: #3b82f6;
-    box-shadow: 0 0 10px 2px rgba(59, 130, 246, 0.5);
-}
-
-.orb.thinking {
-    background-color: #78350f;
-    border-color: #f59e0b;
-    box-shadow: 0 0 15px 5px rgba(245, 158, 11, 0.4);
-}
-
-.orb.speaking {
-    background-color: #14532d;
-    border-color: #22c55e;
-    box-shadow: 0 0 10px 2px rgba(34, 197, 94, 0.5);
-}
-
-.orb-status {
-    font-size: 13px;
-    font-weight: 500;
-    color: #71717a;
-    margin-top: 8px;
-}
-
-/* --- CONVERSATION STREAM --- */
-.chat-scroll {
-    background-color: #09090b;
+progressbar trough {
+    background-color: #0c0c14;
+    border-radius: 4px;
+    min-height: 8px;
     border: none;
-    padding: 0 16px;
 }
 
-.bubble-row {
-    margin: 6px 0;
+progressbar progress {
+    background-color: #a855f7;
+    /* Default purple */
+    border-radius: 4px;
+    border: none;
+}
+
+/* Navigation Widget */
+.nav-item-btn {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 12px 16px;
+    border-radius: 12px;
+}
+
+.nav-item-btn.active {
+    background-color: #7c3aed;
+    /* Purple background from image */
+    box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3);
+}
+
+.nav-item-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #d1d5db;
+}
+
+.nav-item-btn.active .nav-item-label {
+    color: #ffffff;
+}
+
+.nav-item-icon {
+    font-size: 18px;
+    color: #94a3b8;
+}
+
+.nav-item-btn.active .nav-item-icon {
+    color: #ffffff;
+}
+
+.nav-item-btn:hover:not(.active) {
+    background-color: rgba(255, 255, 255, 0.03);
+}
+
+/* Model Info Widget */
+.model-info-header {
+    font-size: 11px;
+    font-weight: 800;
+    color: #52525b;
+}
+
+.model-info-card {
+    background-color: #1a1a2e;
+    padding: 15px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.model-info-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: #fafafa;
+}
+
+.model-info-status {
+    font-size: 11px;
+    font-weight: 700;
+    color: #22c55e;
+    /* Green for stable */
+}
+
+.model-info-version {
+    font-size: 10px;
+    color: #71717a;
+}
+
+/* --- CHAT AREA --- */
+.session-header-box {
+    background-color: rgba(24, 24, 38, 0.5);
+    padding: 8px 16px;
+    border-radius: 20px;
+}
+
+.session-header-text {
+    font-size: 10px;
+    font-weight: 800;
+    color: #a1a1aa;
+    letter-spacing: 0.5px;
 }
 
 .bubble {
-    padding: 12px 16px;
-    border-radius: 8px;
-    margin-bottom: 2px;
-    font-size: 15px;
-    border: 1px solid transparent;
-}
-
-.bubble label {
-    color: inherit;
-}
-
-.bubble.user {
-    background-color: #18181b;
-    color: #fafafa;
-    margin-left: 60px;
-    border-color: #27272a;
-}
-
-.bubble.avva {
-    background-color: #312e81;
-    /* Indigo 900 */
-    color: #e0e7ff;
-    /* Indigo 100 */
-    margin-right: 60px;
-    border-color: #4338ca;
-    /* Indigo 700 */
-}
-
-/* --- WIDGET STYLES --- */
-.stats-widget {
-    background-color: rgba(255, 255, 255, 0.05);
-    padding: 10px;
-    border-radius: 6px;
-    margin-top: 8px;
-}
-
-.widget-label {
-    font-size: 13px;
-    color: #e0e7ff;
-    opacity: 0.8;
-}
-
-.widget-value {
-    font-size: 13px;
-    font-weight: bold;
-    color: #ffffff;
-}
-
-progress,
-trough {
-    min-height: 8px;
-    border-radius: 4px;
-}
-
-progress {
-    background-color: #818cf8;
-    /* Light Indigo */
-}
-
-trough {
-    background-color: #1e1b4b;
-    /* Darker Indigo */
-}
-
-/* --- APP WIDGET --- */
-.app-widget {
-    background-color: rgba(255, 255, 255, 0.05);
-    padding: 12px;
-    border-radius: 8px;
-    min-width: 250px;
-}
-
-.widget-label-large {
-    font-size: 15px;
-    font-weight: 600;
-    color: #ffffff;
-}
-
-.widget-status {
-    font-size: 12px;
-    color: #a1a1aa;
-}
-
-.app-launch-btn {
-    background-color: #3f3f46;
-    color: #ffffff;
-    border: none;
-    border-radius: 6px;
-    padding: 4px 12px;
-    font-size: 13px;
-    font-weight: 500;
-}
-
-/* --- PERMISSION WIDGET --- */
-.permission-list-widget {
-    background-color: rgba(255, 255, 255, 0.03);
-    padding: 12px;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    min-width: 300px;
-}
-
-.permission-row {
-    padding: 8px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-}
-
-.permission-row:last-child {
-    border-bottom: none;
-}
-
-.permission-label {
-    font-size: 13px;
-    font-weight: 500;
-    color: #e4e4e7;
-}
-
-.permission-status-tag {
-    font-size: 10px;
-    font-weight: 700;
-    color: #10b981;
-    background-color: rgba(16, 185, 129, 0.1);
-    padding: 2px 6px;
-    border-radius: 4px;
-}
-
-.widget-header {
-    font-size: 14px;
-    color: #a1a1aa;
-}
-
-/* --- SETTINGS DIALOG --- */
-.settings-dialog {
-    background-color: #18181b;
-    color: #e4e4e7;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.settings-row {
-    background-color: rgba(255, 255, 255, 0.03);
-    padding: 12px;
-    border-radius: 8px;
-    margin-bottom: 2px;
-}
-
-.settings-skill-label {
-    font-size: 14px;
-    font-weight: 700;
-    color: #ffffff;
-}
-
-.settings-perm-label {
-    font-size: 11px;
-    color: #a1a1aa;
-}
-
-/* --- INPUT AREA --- */
-.input-container {
-    padding: 16px 24px;
-    background-color: #09090b;
-    border-top: 1px solid #27272a;
-}
-
-.message-input {
-    background-color: #18181b;
-    color: #fafafa;
-    border: 1px solid #27272a;
-    border-radius: 8px;
-    padding: 10px 16px;
-    font-size: 14px;
-}
-
-.message-input:focus {
-    background-color: #18181b;
-    border-color: #3f3f46;
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(63, 63, 70, 0.5);
-}
-
-.send-btn {
-    min-width: 40px;
-    min-height: 40px;
-    border-radius: 8px;
-    background-color: #fd0000;
-    border: none;
-    font-size: 18px;
-    color: #09090b;
-}
-
-.send-btn:hover {
-    background-color: #e4e4e7;
-}
-
-.send-btn:active {
-    background-color: #d4d4d8;
-}
-
-/* --- FOOTER --- */
-.footer {
-    padding: 12px 24px;
-    background-color: #09090b;
-    border-top: 1px solid #27272a;
-}
-
-.status-label {
-    font-size: 12px;
-    color: #71717a;
-    font-weight: 500;
-}
-
-/* --- SCROLLBAR --- */
-scrollbar {
-    background-color: transparent;
-    border: none;
-}
-
-scrollbar slider {
-    background-color: #27272a;
-    border-radius: 4px;
-    min-width: 8px;
-    min-height: 40px;
-}
-
-scrollbar slider:hover {
-    background-color: #3f3f46;
-}
-
-scrollbar slider:active {
-    background-color: #52525b;
-}
-
-/* --- SELECTION --- */
-*:selected {
-    background-color: #3f3f46;
-    color: #fafafa;
-}
-
-/* --- NOTEBOOK (TABS) - Shadcn Style --- */
-notebook {
-    background-color: #09090b;
-    /* Match main background */
-    border: none;
     padding: 0;
-}
-
-notebook header {
-    background-color: #09090b;
-    border-bottom: 1px solid #27272a;
-    padding: 4px 8px 0 8px;
-}
-
-notebook tab {
-    padding: 8px 16px;
-    background-color: transparent;
-    color: #71717a;
-    /* Muted foreground */
-    font-weight: 500;
-    font-size: 13px;
     border: none;
-    transition: all 0.2s ease;
+    background: transparent;
 }
 
-notebook tab:hover {
-    color: #fafafa;
-    background-color: #18181b;
+/* User Bubble V2 */
+.bubble.user {
+    background-color: #7c3aed;
+    color: #ffffff;
+    border-radius: 20px 20px 0 20px;
+    padding: 16px 24px;
+    box-shadow: 0 4px 20px rgba(124, 58, 237, 0.2);
 }
 
-notebook tab:checked {
-    color: #fafafa;
-    background-color: transparent;
-    /* Bottom indicator line */
-    box-shadow: inset 0 -2px 0 #fafafa;
+/* AVVA Bubble V2 */
+.bubble.avva {
+    background-color: #181826;
+    color: #e2e2e9;
+    border-radius: 20px 20px 20px 0;
+    padding: 20px 24px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-/* Remove the "gap" or background in the stack area */
-notebook stack {
-    background-color: #09090b;
-    padding: 16px;
+/* --- FLOATING INPUT AREA --- */
+.floating-input-wrapper {
+    background: transparent;
 }
 
-/* --- SETTINGS DIALOG & CONTROLS --- */
-.settings-dialog {
-    background-color: #09090b;
-    color: #fafafa;
-    border-radius: 12px;
-    border: 1px solid #27272a;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+.floating-input-container {
+    background-color: #0c0c14;
+    /* Match bg but elevated via border */
+    border: 1px solid #1e1e2e;
+    border-radius: 16px;
+    padding: 12px 24px;
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.4);
 }
 
-/* Row styling to look like Shadcn Cards/List items */
-.settings-row {
-    background-color: #09090b;
-    padding: 16px;
-    border-bottom: 1px solid #27272a;
-    margin-bottom: 0;
-}
-
-.settings-row:last-child {
-    border-bottom: none;
-}
-
-.settings-skill-label {
-    font-size: 14px;
-    font-weight: 600;
-    color: #fafafa;
-}
-
-/* --- COMBOBOX DROPDOWN FIXES --- */
-.settings-combo-box {
-    background-color: #09090b;
-    color: #fafafa;
-    border: 1px solid #27272a;
-}
-
-.settings-combo-box button {
-    color: #fafafa;
-    background-color: transparent;
+.floating-message-input {
+    background: transparent;
+    border: none;
     box-shadow: none;
+    color: #fafafa;
+    font-size: 14px;
+}
+
+.input-icon-btn {
+    color: #52525b;
+    font-size: 20px;
+    margin-right: 5px;
+}
+
+.input-shortcut-label {
+    font-size: 10px;
+    font-weight: 800;
+    color: #52525b;
+    background-color: #181826;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.floating-send-btn {
+    background-color: #7c3aed;
+    color: #ffffff;
+    border-radius: 10px;
+    min-width: 36px;
+    min-height: 36px;
     border: none;
 }
 
-/* The actual dropdown popup window */
-.settings-combo-box window {
-    background-color: #18181b;
-    border: 1px solid #27272a;
-    color: #fafafa;
+.floating-send-btn:hover {
+    background-color: #8b5cf6;
 }
 
-/* The list inside the popup */
-.settings-combo-box list {
-    background-color: #18181b;
-    color: #fafafa;
+
+.badge-icon {
+    font-size: 12px;
+    color: #a1a1aa;
 }
 
-.settings-combo-box cell {
-    background-color: #18181b;
-    color: #fafafa;
-    padding: 8px;
+.badge-text {
+    font-size: 9px;
+    font-weight: 800;
+    color: #71717a;
+    letter-spacing: 0.5px;
 }
 
-.settings-combo-box cell:selected {
-    background-color: #3f3f46;
+/* Snippet Widget (Improved V2) */
+.snippet-widget {
+    background-color: #08080f;
+    border-radius: 12px;
+    border: 1px solid #1e1e2e;
+    margin-top: 15px;
+}
+
+.snippet-code-box {
+    padding: 20px;
+}
+
+.snippet-code-text {
+    font-family: 'Fira Code', 'Monospace', monospace;
+    font-size: 13px;
+    color: #a782f0;
+    /* Purple tint for code */
+}
+
+.snippet-btn-primary {
+    background-color: #7c3aed;
     color: #ffffff;
-}
-
-/* --- BUTTON FIXES --- */
-.settings-dialog button {
-    background-color: #18181b;
-    color: #fafafa;
-    border: 1px solid #27272a;
-}
-
-.settings-dialog button:hover {
-    background-color: #27272a;
-    color: #ffffff;
-}
-
-.settings-dialog button label {
-    color: #fafafa;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 8px 16px;
+    border: none;
 }

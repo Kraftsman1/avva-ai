@@ -21,7 +21,8 @@ class Config:
             "OLLAMA_HOST": os.getenv("OLLAMA_HOST", "http://localhost:11434"),
             "TTS_ENGINE": os.getenv("TTS_ENGINE", "gtts"),
             "OPENAI_API_KEY": os.getenv("OPENAI_API_KEY", ""),
-            "LANGUAGE": os.getenv("AVVA_LANG", "en-uk")
+            "LANGUAGE": os.getenv("AVVA_LANG", "en-uk"),
+            "PIPER_VOICE": os.getenv("PIPER_VOICE", "en_US-lessac-medium.onnx")
         }
         
         # Override with User Config
@@ -52,6 +53,7 @@ class Config:
         self.TTS_ENGINE = merged["TTS_ENGINE"]
         self.OPENAI_API_KEY = merged["OPENAI_API_KEY"]
         self.LANGUAGE = merged["LANGUAGE"]
+        self.PIPER_VOICE = merged["PIPER_VOICE"]
 
     def save_config(self, key, value):
         """Updates a setting and saves to JSON."""

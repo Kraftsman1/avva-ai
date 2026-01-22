@@ -1,0 +1,27 @@
+app-id: com.kraftsman.AVA
+runtime: org.gnome.Platform
+runtime-version: '45'
+sdk: org.gnome.Sdk
+command: ava
+finish-args:
+  # Networking for API/LLM calls and WebSocket bridge
+  - --share=network
+  - --share=ipc
+  # Display
+  - --socket=x11
+  - --socket=wayland
+  # Audio (Microphone for STT, Speakers for TTS)
+  - --socket=pulseaudio
+  - --device=all
+  # Local Filesystem for Brains / Knowledge Base
+  - --filesystem=home
+
+modules:
+  - name: ava
+    buildsystem: simple
+    build-commands:
+      # This assumes the binary is already built and located in the build directory
+      - install -D ava /app/bin/ava
+    sources:
+      - type: file
+        path: ui-web/src-tauri/target/release/ava

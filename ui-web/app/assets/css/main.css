@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    body {
+        @apply bg-ava-bg text-ava-text font-sans antialiased overflow-hidden;
+    }
+}
+
+@layer components {
+    .cyber-border {
+        @apply border border-ava-border border-ava-border-glow;
+    }
+
+    .glass-card {
+        @apply bg-ava-bg-elevated/50 backdrop-blur-md cyber-border rounded-ava;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+        @apply bg-transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        @apply bg-ava-purple/20 rounded-full hover:bg-ava-purple/40;
+    }
+}
+
+/* Animations from V2 Prototype idea (but CSS transitions are safe now) */
+.fade-enter-active,
+.fade-leave-active {
+    transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+    opacity: 0;
+}
