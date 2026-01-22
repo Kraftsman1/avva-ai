@@ -2,10 +2,12 @@
   <ScrollArea class="flex-1 h-full" ref="scrollContainer">
     <div class="flex-1 flex flex-col p-10 pb-36 max-w-5xl mx-auto w-full font-sans">
       <!-- Session Start Indicator -->
-      <div class="flex justify-center mb-16">
-        <div class="px-6 py-2 bg-[#12121e]/50 border border-white/5 rounded-full flex items-center gap-3">
-          <span class="text-[9px] font-black text-white/40 tracking-[0.2em] uppercase">
-            SESSION: {{ currentSessionLabel }}
+      <div class="flex justify-center mb-16 px-10">
+        <div
+          class="px-8 py-3 bg-white/[0.02] border border-white/[0.04] rounded-2xl flex items-center gap-4 shadow-xl backdrop-blur-md">
+          <div class="w-1.5 h-1.5 bg-ava-purple rounded-full shadow-[0_0_8px_#7c3aed]"></div>
+          <span class="text-[10px] font-black text-white/30 tracking-[0.3em] uppercase">
+            ACTIVE_NEURAL_LINK: {{ currentSessionLabel }}
           </span>
         </div>
       </div>
@@ -32,8 +34,8 @@
 
               <!-- Content Bubble -->
               <div class="p-6 rounded-2xl transition-all" :class="msg.sender === 'user'
-                  ? 'bubble-user rounded-tr-none'
-                  : 'bubble-ava rounded-tl-none border-[#7c3aed11]'
+                ? 'bubble-user rounded-tr-none'
+                : 'bubble-ava rounded-tl-none border-[#7c3aed11]'
                 ">
                 <div v-if="hasCode(msg.text)">
                   <p class="text-[15px] leading-relaxed mb-4 font-medium">{{ getTextBeforeCode(msg.text) }}</p>

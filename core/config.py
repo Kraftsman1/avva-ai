@@ -22,7 +22,9 @@ class Config:
             "TTS_ENGINE": os.getenv("TTS_ENGINE", "gtts"),
             "OPENAI_API_KEY": os.getenv("OPENAI_API_KEY", ""),
             "LANGUAGE": os.getenv("AVVA_LANG", "en-uk"),
-            "PIPER_VOICE": os.getenv("PIPER_VOICE", "en_US-lessac-medium.onnx")
+            "PIPER_VOICE": os.getenv("PIPER_VOICE", "en_US-lessac-medium.onnx"),
+            "TEMPERATURE": 0.7,
+            "CONTEXT_WINDOW": 8192
         }
         
         # Override with User Config
@@ -54,6 +56,8 @@ class Config:
         self.OPENAI_API_KEY = merged["OPENAI_API_KEY"]
         self.LANGUAGE = merged["LANGUAGE"]
         self.PIPER_VOICE = merged["PIPER_VOICE"]
+        self.TEMPERATURE = merged["TEMPERATURE"]
+        self.CONTEXT_WINDOW = merged["CONTEXT_WINDOW"]
 
     def save_config(self, key, value):
         """Updates a setting and saves to JSON."""

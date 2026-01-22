@@ -9,7 +9,15 @@ export default defineNuxtPlugin(() => {
     const state = reactive({
         assistantState: 'idle',
         messages: [] as Message[],
-        systemStats: { cpu: 0, ram: 0, vram: 0 },
+        systemStats: { cpu: 0, ram: 0, vram: 0, vram_used: 0, vram_total: 0 },
+        intelligenceStats: { tokens_sec: 0, latency: 0, npu_acceleration: 0 },
+        config: {} as any,
+        brains: [] as any[],
+        activeBrainId: null as string | null,
+        fallbackBrainId: null as string | null,
+        rulesOnly: false,
+        autoSelection: true,
+        appSettings: {} as any,
         activeModel: 'Llama-3-8B-Instruct',
         isConnected: false
     })
@@ -27,6 +35,10 @@ export default defineNuxtPlugin(() => {
             state.isConnected = true
             console.log('✅ Connected to AVA Core')
             if (reconnectTimer) clearTimeout(reconnectTimer)
+            // Initial data pull
+            fetchConfig()
+            fetchBrains()
+            fetchSettings()
         }
 
         ws.onmessage = (event: MessageEvent) => {
@@ -54,6 +66,36 @@ export default defineNuxtPlugin(() => {
                 case 'system.stats':
                     state.systemStats = payload
                     break
+                case 'intelligence.stats':
+                    state.intelligenceStats = payload
+                    break
+                case 'config.data':
+                    state.config = payload
+                    break
+                case 'config.updated':
+                    state.config = { ...state.config, ...payload }
+                    break
+                case 'brains.data':
+                    state.brains = payload.brains
+                    state.activeBrainId = payload.active_id
+                    state.fallbackBrainId = payload.fallback_id
+                    state.rulesOnly = payload.rules_only
+                    state.autoSelection = payload.auto_selection
+                    break
+                case 'brains.updated':
+                    state.activeBrainId = payload.active_id
+                    state.fallbackBrainId = payload.fallback_id
+                    break
+                case 'brains.mode_updated':
+                    state.rulesOnly = payload.rules_only
+                    state.autoSelection = payload.auto_selection
+                    break
+                case 'settings.data':
+                    state.appSettings = payload
+                    break
+                case 'settings.updated':
+                    state.appSettings = { ...state.appSettings, ...payload }
+                    break
             }
         }
 
@@ -70,11 +112,63 @@ export default defineNuxtPlugin(() => {
 
     const sendCommand = (command: string) => {
         if (ws && ws.readyState === WebSocket.OPEN) {
-            // We no longer push locally here to avoid duplication.
-            // The server will broadcast the command back to us.
             ws.send(JSON.stringify({
                 type: 'assistant.command',
                 payload: { command }
+            }))
+        }
+    }
+
+    const fetchConfig = () => {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'config.get' }))
+        }
+    }
+
+    const updateConfig = (key: string, value: any) => {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+                type: 'config.update',
+                payload: { key, value }
+            }))
+        }
+    }
+
+    const fetchBrains = () => {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'brains.list' }))
+        }
+    }
+
+    const selectBrain = (target: 'active' | 'fallback', brainId: string) => {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+                type: 'brains.select',
+                payload: { target, brain_id: brainId }
+            }))
+        }
+    }
+
+    const toggleBrainMode = (mode: 'rules_only' | 'auto_selection', enabled: boolean) => {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+                type: 'brains.toggle_mode',
+                payload: { mode, enabled }
+            }))
+        }
+    }
+
+    const fetchSettings = () => {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'settings.get' }))
+        }
+    }
+
+    const updateSettings = (settings: any) => {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+                type: 'settings.update',
+                payload: { settings }
             }))
         }
     }
@@ -88,7 +182,14 @@ export default defineNuxtPlugin(() => {
         provide: {
             ava: {
                 state,
-                sendCommand
+                sendCommand,
+                fetchConfig,
+                updateConfig,
+                fetchBrains,
+                selectBrain,
+                toggleBrainMode,
+                fetchSettings,
+                updateSettings
             }
         }
     }
