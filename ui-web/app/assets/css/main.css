@@ -3,65 +3,84 @@
 @tailwind utilities;
 
 @layer base {
-    body {
-        @apply bg-ava-bg text-ava-text font-sans antialiased overflow-hidden;
-    }
-
     :root {
-        --background: 240 10% 3.9%;
-        /* ava-bg approximation */
+        --background: 240 25% 4%;
+        /* #07070a */
         --foreground: 0 0% 98%;
-        --card: 240 10% 4.5%;
-        --card-foreground: 0 0% 98%;
-        --popover: 240 10% 3.9%;
+
+        --muted: 240 10% 6%;
+        --muted-foreground: 240 5% 50%;
+
+        --popover: 240 25% 4%;
         --popover-foreground: 0 0% 98%;
-        --primary: 270 91% 65%;
-        /* ava-purple approximation */
+
+        --card: 240 25% 5%;
+        --card-foreground: 0 0% 98%;
+
+        --border: 240 10% 10%;
+        --input: 240 10% 10%;
+
+        --primary: 271 91% 60%;
+        /* Vibrant Purple */
         --primary-foreground: 0 0% 100%;
-        --secondary: 240 10% 15%;
+
+        --secondary: 240 10% 8%;
         --secondary-foreground: 0 0% 98%;
-        --muted: 240 5% 15%;
-        --muted-foreground: 240 5% 65%;
-        --accent: 270 91% 65%;
+
+        --accent: 271 91% 60%;
         --accent-foreground: 0 0% 100%;
-        --destructive: 0 62.8% 30.6%;
+
+        --destructive: 0 84% 60%;
         --destructive-foreground: 0 0% 98%;
-        --border: 240 10% 15%;
-        --input: 240 10% 15%;
-        --ring: 270 91% 65%;
-        --radius: 1rem;
+
+        --ring: 271 91% 60%;
+
+        --radius: 0.75rem;
     }
 
     .dark {
-        --background: 240 10% 3.9%;
+        --background: 240 25% 4%;
         --foreground: 0 0% 98%;
-        --card: 240 10% 4.5%;
-        --card-foreground: 0 0% 98%;
-        --popover: 240 10% 3.9%;
-        --popover-foreground: 0 0% 98%;
-        --primary: 270 91% 65%;
-        --primary-foreground: 0 0% 100%;
-        --secondary: 240 10% 15%;
-        --secondary-foreground: 0 0% 98%;
-        --muted: 240 5% 15%;
-        --muted-foreground: 240 5% 65%;
-        --accent: 270 91% 65%;
-        --accent-foreground: 0 0% 100%;
-        --destructive: 0 62.8% 30.6%;
-        --destructive-foreground: 0 0% 98%;
-        --border: 240 10% 15%;
-        --input: 240 10% 15%;
-        --ring: 270 91% 65%;
+    }
+
+    * {
+        @apply border-border;
+    }
+
+    body {
+        @apply bg-background text-foreground font-sans antialiased overflow-hidden;
+        font-feature-settings: "rlig" 1, "calt" 1;
     }
 }
 
 @layer components {
-    .cyber-border {
-        @apply border border-ava-border border-ava-border-glow;
+
+    /* High-Fidelity Cyber-OLED Utilities */
+    .cyber-panel {
+        @apply bg-[#07070a] border border-white/[0.03];
     }
 
-    .glass-card {
-        @apply bg-ava-bg-elevated/50 backdrop-blur-md cyber-border rounded-ava;
+    .cyber-card {
+        @apply bg-[#0c0c14] border border-white/[0.05] shadow-2xl;
+    }
+
+    /* User Message Bubble */
+    .bubble-user {
+        @apply bg-gradient-to-br from-[#7127e9] to-[#9333ea] text-white border border-white/10;
+        box-shadow: 0 4px 15px rgba(124, 58, 237, 0.2);
+    }
+
+    /* AVA Message Card */
+    .bubble-ava {
+        @apply bg-[#12121e] border border-white/[0.05] text-white/90 shadow-xl;
+    }
+
+    .neon-glow-purple {
+        box-shadow: 0 0 15px rgba(124, 58, 237, 0.4);
+    }
+
+    .neon-glow-green {
+        box-shadow: 0 0 15px rgba(52, 211, 153, 0.4);
     }
 
     /* Custom Scrollbar */
@@ -74,11 +93,11 @@
     }
 
     ::-webkit-scrollbar-thumb {
-        @apply bg-ava-purple/20 rounded-full hover:bg-ava-purple/40;
+        @apply bg-white/10 rounded-full hover:bg-white/20 transition-all;
     }
 }
 
-/* Animations from V2 Prototype idea (but CSS transitions are safe now) */
+/* Animations */
 .fade-enter-active,
 .fade-leave-active {
     transition: opacity 0.3s ease;
@@ -87,16 +106,4 @@
 .fade-enter-from,
 .fade-leave-to {
     opacity: 0;
-}
-
-
-
-@layer base {
-    * {
-        @apply border-border;
-    }
-
-    body {
-        @apply bg-background text-foreground;
-    }
 }

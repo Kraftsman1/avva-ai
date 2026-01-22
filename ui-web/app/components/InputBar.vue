@@ -1,50 +1,66 @@
 <template>
-  <div class="absolute bottom-10 left-1/2 -translate-x-1/2 w-full max-w-2xl px-6">
+  <div class="absolute bottom-10 left-1/2 -translate-x-1/2 w-full max-w-4xl px-10">
     <div
-      class="glass-card p-2 pr-4 shadow-cyber-strong flex items-center gap-4 focus-within:border-ava-purple/50 transition-all duration-300">
+      class="bg-[#0c0c14] border border-white/[0.05] p-3 shadow-2xl rounded-2xl flex items-center gap-4 focus-within:border-[#7c3aed44] transition-all group">
+      <!-- Left Utility Icons -->
       <div class="flex items-center gap-1.5 ml-2">
-        <span v-for="icon in ['⌨', '🔍', '👁']" :key="icon"
-          class="text-sm text-ava-text-muted cursor-pointer hover:text-white p-1 hover:bg-white/5 rounded transition-all">
-          {{ icon }}
-        </span>
+        <Button variant="ghost" size="icon"
+          class="h-9 w-9 text-white/20 hover:text-white hover:bg-white/5 rounded-xl transition-all">
+          <Terminal :size="18" stroke-width="2.5" />
+        </Button>
+        <Button variant="ghost" size="icon"
+          class="h-9 w-9 text-white/20 hover:text-white hover:bg-white/5 rounded-xl transition-all">
+          <Search :size="18" stroke-width="2.5" />
+        </Button>
+        <Button variant="ghost" size="icon"
+          class="h-9 w-9 text-white/20 hover:text-white hover:bg-white/5 rounded-xl transition-all">
+          <Maximize2 :size="18" stroke-width="2.5" />
+        </Button>
       </div>
 
-      <input v-model="input" @keyup.enter="handleSend" type="text"
-        placeholder="Request system diagnostics or ask AVA anything..."
-        class="flex-1 bg-transparent border-none outline-none text-[15px] font-medium placeholder:text-ava-text-muted/50 py-3" />
+      <div class="h-8 w-[1px] bg-white/5 mx-2"></div>
 
-      <div class="flex items-center gap-4">
-        <span
-          class="text-[9px] font-black text-ava-text-muted bg-ava-bg px-2 py-1 rounded-md border border-white/5 tracking-widest hidden sm:inline">CTRL
-          + ENTER</span>
+      <input v-model="input" @keyup.enter="handleSend" type="text" placeholder="Ask AVA or run a system command..."
+        class="flex-1 bg-transparent border-none outline-none text-[15px] font-bold placeholder:text-white/10 py-3 tracking-tight text-white/90" />
 
-        <button @click="handleSend"
-          class="w-10 h-10 bg-ava-purple-700 hover:bg-ava-purple-600 rounded-xl flex items-center justify-center text-white transition-all active:scale-95 shadow-lg disabled:opacity-50"
+      <div class="flex items-center gap-4 ml-2">
+        <div
+          class="hidden sm:flex items-center px-2.5 py-1.5 bg-[#07070a] border border-white/5 rounded-lg text-[9px] font-black text-white/30 tracking-[0.2em] uppercase">
+          CTRL + ENTER
+        </div>
+
+        <Button @click="handleSend" size="icon"
+          class="h-11 w-11 bg-gradient-to-br from-[#7c3aed] to-[#6d28d9] hover:from-[#8b5cf6] hover:to-[#7c3aed] text-white rounded-xl transition-all active:scale-95 shadow-[0_4px_15px_#7c3aed44] disabled:opacity-20"
           :disabled="!input.trim()">
-          <ArrowUp :size="20" stroke-width="3" />
-        </button>
+          <ArrowUp :size="22" stroke-width="3" />
+        </Button>
       </div>
     </div>
 
-    <div class="flex justify-center gap-6 mt-4 animate-in fade-in slide-in-from-bottom-2">
+    <!-- Status Badges -->
+    <div class="flex justify-center gap-10 mt-6 animate-in fade-in slide-in-from-bottom-2 duration-700">
       <div v-for="badge in badges" :key="badge.label"
-        class="flex items-center gap-2 opacity-40 hover:opacity-80 transition-opacity cursor-help">
-        <span class="text-xs">{{ badge.icon }}</span>
-        <span class="text-[9px] font-black tracking-widest uppercase">{{ badge.label }}</span>
+        class="flex items-center gap-2.5 opacity-30 hover:opacity-100 transition-all cursor-help group">
+        <component :is="badge.icon" :size="12" class="text-white group-hover:text-[#7c3aed] transition-colors" />
+        <span
+          class="text-[9px] font-black tracking-[0.2em] uppercase text-white/80 group-hover:text-white transition-colors">
+          {{ badge.label }}
+        </span>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ArrowUp } from 'lucide-vue-next'
-const { $ava } = useNuxtApp()
+import { Terminal, Search, Maximize2, ArrowUp, Zap, Shield, Database } from 'lucide-vue-next'
 
+const { $ava } = useNuxtApp()
 const input = ref('')
+
 const badges = [
-  { icon: '⚡', label: 'LOW LATENCY BRAIN' },
-  { icon: '🛡', label: 'ENCRYPTED LOCAL BRIDGE' },
-  { icon: '📚', label: 'RAG CONTEXT: ENABLED' },
+  { icon: Zap, label: 'LOW LATENCY MODE' },
+  { icon: Shield, label: 'ENCRYPTED LOCAL STORAGE' },
+  { icon: Database, label: 'RAG: DESKTOP DOCS' },
 ]
 
 const handleSend = () => {

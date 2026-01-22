@@ -1,68 +1,107 @@
 <template>
-  <div class="flex-1 flex flex-col p-8 pb-32 overflow-y-auto" ref="scrollContainer">
-    <!-- Session Start Indicator -->
-    <div class="flex justify-center mb-12">
-      <div class="px-6 py-2 bg-ava-bg-elevated border border-ava-border rounded-full shadow-cyber">
-        <span class="text-[10px] font-black tracking-[0.2em] text-ava-text-muted uppercase">SYSTEM PROTOCOL INITIALIZED:
-          SESSION {{ sessionId }}</span>
+  <ScrollArea class="flex-1 h-full" ref="scrollContainer">
+    <div class="flex-1 flex flex-col p-10 pb-36 max-w-5xl mx-auto w-full font-sans">
+      <!-- Session Start Indicator -->
+      <div class="flex justify-center mb-16">
+        <div class="px-6 py-2 bg-[#12121e]/50 border border-white/5 rounded-full flex items-center gap-3">
+          <span class="text-[9px] font-black text-white/40 tracking-[0.2em] uppercase">
+            SESSION: {{ currentSessionLabel }}
+          </span>
+        </div>
       </div>
-    </div>
 
-    <!-- Messages -->
-    <div class="max-w-4xl mx-auto w-full space-y-8">
-      <div v-for="msg in $ava?.state?.messages || []" :key="msg.id" class="flex flex-col"
-        :class="msg.sender === 'user' ? 'items-end' : 'items-start'">
-        <div class="max-w-[80%] rounded-2xl p-5 shadow-lg border" :class="msg.sender === 'user'
-          ? 'bg-ava-purple-700 border-ava-purple-600 text-white rounded-tr-none'
-          : 'bg-ava-bg-elevated border-white/5 text-ava-text rounded-tl-none'">
-          <div v-if="msg.sender === 'avva'" class="flex items-center gap-2 mb-2 opacity-50">
-            <span class="text-[9px] font-black tracking-widest uppercase">ENCRYPTED RESPONSE // 0x{{
-              msg.id.toString(16).slice(-4) }}</span>
-          </div>
+      <!-- Messages -->
+      <div class="space-y-10">
+        <div v-for="msg in $ava?.state?.messages || []" :key="msg.id"
+          class="flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-500"
+          :class="msg.sender === 'user' ? 'items-end' : 'items-start'">
+          <!-- Message Group -->
+          <div class="max-w-[85%] flex items-start gap-5" :class="msg.sender === 'user' ? 'flex-row-reverse' : ''">
+            <!-- Icon/Avatar for AVA -->
+            <div v-if="msg.sender !== 'user'"
+              class="w-10 h-10 rounded-xl bg-[#2a1a4a] border border-[#7c3aed33] flex items-center justify-center shadow-lg shrink-0 mt-1">
+              <Bot :size="20" class="text-[#7c3aed]" />
+            </div>
 
-          <p class="text-[15px] leading-relaxed font-medium whitespace-pre-wrap">{{ msg.text }}</p>
+            <div class="flex flex-col" :class="msg.sender === 'user' ? 'items-end' : 'items-start'">
+              <!-- Attribution -->
+              <span class="text-[10px] font-black tracking-widest uppercase mb-2 px-1"
+                :class="msg.sender === 'user' ? 'text-white/40' : 'text-[#7c3aed]'">
+                {{ msg.sender === 'user' ? 'YOU' : 'AVA' }}
+              </span>
 
-          <!-- Structured Data Support (Stats, Apps, etc.) -->
-          <div v-if="msg.data" class="mt-4 pt-4 border-t border-white/5 space-y-3">
-            <div v-if="msg.data.type === 'system_stats'" class="grid grid-cols-3 gap-4">
-              <div v-for="(v, k) in { CPU: msg.data.cpu, RAM: msg.data.ram, DISK: msg.data.disk }" :key="k"
-                class="bg-black/20 p-3 rounded-xl border border-white/5">
-                <span class="block text-[10px] font-bold text-ava-text-muted mb-1">{{ k }}</span>
-                <span class="text-xl font-black text-ava-neon tracking-tight">{{ v }}%</span>
+              <!-- Content Bubble -->
+              <div class="p-6 rounded-2xl transition-all" :class="msg.sender === 'user'
+                  ? 'bubble-user rounded-tr-none'
+                  : 'bubble-ava rounded-tl-none border-[#7c3aed11]'
+                ">
+                <div v-if="hasCode(msg.text)">
+                  <p class="text-[15px] leading-relaxed mb-4 font-medium">{{ getTextBeforeCode(msg.text) }}</p>
+                  <div class="bg-[#07070a] rounded-xl border border-white/5 overflow-hidden shadow-2xl">
+                    <div class="px-4 py-2 bg-white/[0.03] border-b border-white/5 flex justify-between items-center">
+                      <span class="text-[10px] font-mono text-white/40 tracking-wider">shell_script.sh</span>
+                      <Copy :size="14" class="text-white/20 hover:text-white cursor-pointer transition-colors" />
+                    </div>
+                    <pre
+                      class="p-6 font-mono text-sm overflow-x-auto text-[#a78bfa]"><code>{{ getCode(msg.text) }}</code></pre>
+                  </div>
+                  <p v-if="getTextAfterCode(msg.text)" class="text-[15px] leading-relaxed mt-4 font-medium">
+                    {{ getTextAfterCode(msg.text) }}
+                  </p>
+                </div>
+                <p v-else class="text-[15px] leading-relaxed font-medium tracking-tight">
+                  {{ msg.text }}
+                </p>
+
+                <!-- Status Indicators for AVA stats if any (Mocked for visual fidelity as per screenshot) -->
+                <div v-if="msg.text.includes('temperature')" class="mt-4 pt-4 border-t border-white/5 flex gap-4">
+                  <div class="flex items-center gap-2">
+                    <div class="w-1.5 h-1.5 rounded-full bg-[#7c3aed]"></div>
+                    <span class="text-[10px] font-bold text-white/40 uppercase tracking-widest">TEMP: 54°C</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <div class="w-1.5 h-1.5 rounded-full bg-[#ef4444]"></div>
+                    <span class="text-[10px] font-bold text-white/40 uppercase tracking-widest">THRESHOLD: 85°C</span>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div v-if="msg.data.app" class="flex items-center gap-4 bg-black/20 p-3 rounded-xl border border-white/5">
-              <div
-                class="w-10 h-10 bg-ava-purple/20 flex items-center justify-center rounded-lg text-ava-purple font-black">
-                {{ msg.data.app[0].toUpperCase() }}
-              </div>
-              <div class="flex-1">
-                <span class="block text-xs font-bold text-white uppercase">{{ msg.data.app }}</span>
-                <span class="block text-[10px] text-ava-text-muted">EXECUTABLE // SYSTEM_ACCESS</span>
-              </div>
-              <button
-                class="px-4 py-1.5 bg-ava-neon/20 text-ava-neon text-[10px] font-black rounded-full border border-ava-neon/30 hover:bg-ava-neon/40 transition-all uppercase">
-                Launch
-              </button>
+            <!-- User Avatar (Mockup style) -->
+            <div v-if="msg.sender === 'user'"
+              class="w-10 h-10 rounded-xl bg-[#1a1a2e] border border-white/10 flex items-center justify-center shadow-lg shrink-0 mt-1 overflow-hidden">
+              <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Ghost" class="w-full h-full object-cover"
+                alt="You" />
             </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
+  </ScrollArea>
 </template>
 
 <script setup>
+import { Bot, Copy } from 'lucide-vue-next'
+
 const { $ava } = useNuxtApp()
 const scrollContainer = ref(null)
-const sessionId = ref(Math.floor(Math.random() * 9000) + 1000)
 
-watch(() => $ava?.state?.messages?.length, () => {
-  nextTick(() => {
-    if (scrollContainer.value) {
-      scrollContainer.value.scrollTop = scrollContainer.value.scrollHeight
-    }
-  })
-})
+const currentSessionLabel = 'LINUX ENVIRONMENT OPTIMIZATION'
+
+const hasCode = (text) => text.includes('```')
+const getCode = (text) => text.split('```')[1]?.split('\n').splice(1).join('\n')
+const getTextBeforeCode = (text) => text.split('```')[0]
+const getTextAfterCode = (text) => text.split('```')[2]
+
+watch(
+  () => $ava?.state?.messages?.length,
+  () => {
+    nextTick(() => {
+      const viewport = scrollContainer.value?.$el?.querySelector('[data-radix-scroll-area-viewport]')
+      if (viewport) {
+        viewport.scrollTop = viewport.scrollHeight
+      }
+    })
+  }
+)
 </script>
