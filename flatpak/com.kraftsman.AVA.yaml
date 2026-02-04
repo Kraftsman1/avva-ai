@@ -22,8 +22,12 @@ modules:
     build-commands:
       - install -D avva /app/bin/avva
       - install -D avva-core-x86_64-unknown-linux-gnu /app/bin/avva-core-x86_64-unknown-linux-gnu
+      - mkdir -p /app/bin/bin
+      - cp -r bin/* /app/bin/bin/
     sources:
       - type: file
         path: ui-web/src-tauri/target/release/avva
       - type: file
         path: ui-web/src-tauri/sidecars/avva-core-x86_64-unknown-linux-gnu
+      - type: dir
+        path: bin

@@ -9,6 +9,11 @@ echo "📦 [1/4] Compiling Python Core..."
 mkdir -p ui-web/src-tauri/sidecars
 mv dist/avva-core-x86_64-unknown-linux-gnu ui-web/src-tauri/sidecars/
 
+# Copy TTS bin directory as assets for the sidecar
+echo "📁 Bundling TTS assets..."
+mkdir -p ui-web/src-tauri/sidecars/bin
+cp -r bin/* ui-web/src-tauri/sidecars/bin/
+
 # 2. Build Nuxt Frontend
 echo "🌐 [2/4] Building Web UI..."
 cd ui-web
