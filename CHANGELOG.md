@@ -2,6 +2,21 @@
 
 All notable changes to the AVVA project will be documented in this file.
 
+## [Unreleased] - 2026-01-22
+### Added
+- **Modern Web UI (Nuxt 4 + Tauri)**: Complete frontend rewrite using **Nuxt 4** and **Tauri** for a native desktop experience.
+  - **Cyberpunk Aesthetic**: High-fidelity dark mode UI with telemetry visualizations, glassmorphism, and animated components.
+  - **Real-time Telemetry**: WebSocket integration displaying live CPU, RAM, and VRAM usage from the Python core.
+  - **Visual Thinking Mode**: 
+    - **Header Status Indicator**: Central status pulse (Idle, Listening, Thinking, Speaking) for immediate state feedback.
+    - **Chat Bubbles**: Dynamic "Thinking..." bubbles with typing animations that appear during LLM inference.
+- **WebSocket Bridge**: Bidirectional real-time communication layer (`core/websocket_server.py`) connecting the Python backend with the Vue frontend.
+- **Active Model Sync**: The UI now automatically detects and displays the specific active model name (e.g., "llama3.2") from the configured Brain.
+
+### Changed
+- **UI Architecture**: Moved from simple HTML/JS interfaces to a robust component-based architecture using Vue 3 and Shadcn-vue.
+- **Brain Integration**: Brains now expose granular `config_data` to the web client for accurate model reporting.
+
 ## [Unreleased] - 2026-01-18
 ### Added
 - **Configurable LLM Brains System**: Complete architectural overhaul of LLM integration.

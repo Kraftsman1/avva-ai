@@ -1,7 +1,7 @@
 {
-  "name": "ui-web",
-  "type": "module",
-  "private": true,
+  "name": "avva-ai",
+  "version": "0.1.0",
+  "description": "AVVA — Advanced Voice Virtual Assistant for Linux",
   "scripts": {
     "build": "nuxt build",
     "dev": "nuxt dev",

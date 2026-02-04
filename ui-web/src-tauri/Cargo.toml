@@ -1,10 +1,10 @@
 [package]
-name = "app"
+name = "avva-ai"
 version = "0.1.0"
-description = "A Tauri App"
-authors = ["you"]
+description = "AVVA — Advanced Voice Virtual Assistant for Linux"
+authors = ["Kraftsman AI"]
 license = ""
-repository = ""
+repository = "https://github.com/Kraftsman1/avva-ai"
 edition = "2021"
 rust-version = "1.77.2"
 

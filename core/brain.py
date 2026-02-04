@@ -266,30 +266,36 @@ class Brain:
         brain = self.manager.select_brain(context)
         
         if not brain:
+            print("⚠️ No Brain available, cannot process command.")
             return "I heard you, but I couldn't find a direct skill match and no Brain is available."
         
         print(f"DEBUG: Active Brain Selected: {brain.name} ({brain.provider})")
         
-        # Filter context based on Brain's privacy level
-        filtered_context = ContextFilter.filter_for_privacy_level(
-            context,
-            brain.get_privacy_level(),
-            brain.config.context_filter_level
-        )
+        # Try to execute with selected Brain
+        brain_response = self._try_brain_execution(brain, command, context)
         
-        # Execute with Brain
-        print(f"DEBUG: Executing with {brain.name}...")
-        brain_response = brain.execute(command, filtered_context, {})
-        print(f"DEBUG: Brain Response Success: {brain_response.success}")
+        # If brain execution failed, try fallback chain
+        if not brain_response or not brain_response.success:
+            print(f"⚠️ Primary Brain failed: {brain_response.error if brain_response else 'No response'}")
+            
+            # Try fallback brain
+            fallback_brain = self.manager._try_fallback(f"Primary Brain '{brain.name}' failed")
+            if fallback_brain and fallback_brain.id != brain.id:
+                print(f"🔄 Attempting fallback to: {fallback_brain.name}")
+                brain_response = self._try_brain_execution(fallback_brain, command, context)
+            
+            # If still failed, try Rules Brain as last resort
+            if not brain_response or not brain_response.success:
+                rules_brain = self.manager.get_brain("rules")
+                if rules_brain and rules_brain.id != brain.id:
+                    print("🔄 Final fallback to Rules Brain")
+                    brain_response = self._try_brain_execution(rules_brain, command, context)
         
-        # Log usage if applicable
-        if brain_response.tokens_used and brain_response.cost_usd:
-            storage.log_brain_usage(brain.id, brain_response.tokens_used, brain_response.cost_usd)
-        
-        # Handle response
-        if not brain_response.success:
-            print(f"DEBUG: Brain Execution Failed: {brain_response.error}")
-            return brain_response.error or "Brain execution failed"
+        # If all brains failed, return error
+        if not brain_response or not brain_response.success:
+            error_msg = brain_response.error if brain_response else "All brains failed to process command"
+            print(f"❌ All brains failed: {error_msg}")
+            return f"I'm having trouble processing that command. {error_msg}"
         
         # If Brain extracted an intent, execute it
         if brain_response.intent and brain_response.confidence > 0.7:
@@ -305,6 +311,35 @@ class Brain:
         
         # Return natural response
         return brain_response.natural_response or brain_response.content
+    
+    def _try_brain_execution(self, brain, command, context):
+        """Try to execute command with a specific brain."""
+        try:
+            # Filter context based on Brain's privacy level
+            filtered_context = ContextFilter.filter_for_privacy_level(
+                context,
+                brain.get_privacy_level(),
+                brain.config.context_filter_level
+            )
+            
+            # Execute with Brain
+            print(f"DEBUG: Executing with {brain.name}...")
+            brain_response = brain.execute(command, filtered_context, {})
+            print(f"DEBUG: Brain Response Success: {brain_response.success}")
+            
+            # Log usage if applicable
+            if brain_response.tokens_used and brain_response.cost_usd:
+                storage.log_brain_usage(brain.id, brain_response.tokens_used, brain_response.cost_usd)
+            
+            return brain_response
+        except Exception as e:
+            print(f"❌ Exception during brain execution: {e}")
+            from core.brain_interface import BrainResponse
+            return BrainResponse(
+                success=False,
+                content="",
+                error=str(e)
+            )
     
     def _build_context(self, command):
         """Build context dictionary for Brain execution."""

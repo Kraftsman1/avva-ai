@@ -1,18 +1,18 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "AVA",
+  "productName": "AVVA",
   "version": "0.1.0",
-  "identifier": "com.avva.app",
+  "identifier": "com.kraftsman.avva",
   "build": {
     "frontendDist": "../.output/public",
     "devUrl": "http://localhost:3000",
     "beforeDevCommand": "npm run dev",
-    "beforeBuildCommand": "npm run build"
+    "beforeBuildCommand": "npm run generate"
   },
   "app": {
     "windows": [
       {
-        "title": "AVA — Linux Assistant",
+        "title": "AVVA — Linux Assistant",
         "width": 800,
         "height": 600,
         "resizable": true,
@@ -26,6 +26,10 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "publisher": "Kraftsman AI",
+    "copyright": "© 2026 Kraftsman AI",
+    "category": "Utility",
+    "shortDescription": "Linux AI Assistant",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

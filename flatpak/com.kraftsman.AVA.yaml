@@ -1,8 +1,8 @@
-app-id: com.kraftsman.AVA
+app-id: com.kraftsman.avva
 runtime: org.gnome.Platform
 runtime-version: '45'
 sdk: org.gnome.Sdk
-command: ava
+command: avva
 finish-args:
   # Networking for API/LLM calls and WebSocket bridge
   - --share=network
@@ -17,13 +17,13 @@ finish-args:
   - --filesystem=home
 
 modules:
-  - name: ava
+  - name: avva
     buildsystem: simple
     build-commands:
-      - install -D app /app/bin/ava
+      - install -D avva /app/bin/avva
       - install -D avva-core-x86_64-unknown-linux-gnu /app/bin/avva-core-x86_64-unknown-linux-gnu
     sources:
       - type: file
-        path: ui-web/src-tauri/target/release/app
+        path: ui-web/src-tauri/target/release/avva
       - type: file
         path: ui-web/src-tauri/sidecars/avva-core-x86_64-unknown-linux-gnu
