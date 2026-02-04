@@ -5,6 +5,15 @@ __pycache__/
 venv/
 .env
 
+# Build artifacts
+build/
+dist/
+*.spec
+
+# Tauri build artifacts
+ui-web/src-tauri/target/
+ui-web/src-tauri/sidecars/
+
 # Audio Temp Files & Models
 temp/
 bin/
@@ -13,3 +22,8 @@ bin/
 
 # DS_Store
 .DS_Store
+
+# Node modules
+node_modules/
+.nuxt/
+.output/
