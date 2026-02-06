@@ -490,6 +490,40 @@
                         </Card>
                     </div>
                 </div>
+                <Card class="cyber-card p-10 mt-10">
+                    <div class="flex items-center gap-4 border-l-2 border-red-500/40 pl-4">
+                        <h2 class="text-xl font-black text-white tracking-tight uppercase tracking-[0.1em]">
+                            Error Log</h2>
+                        <span class="text-[9px] font-black text-white/30 tracking-[0.2em] uppercase">
+                            Last 50
+                        </span>
+                    </div>
+                    <div class="mt-6 space-y-4 max-h-[320px] overflow-y-auto pr-2">
+                        <div v-if="errorLog.length === 0"
+                            class="text-[11px] font-black tracking-[0.2em] uppercase text-white/20">
+                            No errors recorded.
+                        </div>
+                        <div v-for="entry in errorLog" :key="entry.id"
+                            class="flex items-start justify-between gap-6 border border-white/5 rounded-2xl px-5 py-4 bg-white/[0.02]">
+                            <div>
+                                <div class="text-[9px] font-black tracking-[0.2em] uppercase text-ava-purple/60">
+                                    {{ entry.code }}
+                                </div>
+                                <div class="text-[13px] text-white/80 mt-2 leading-relaxed">
+                                    {{ entry.message }}
+                                </div>
+                                <div class="text-[9px] mt-2 text-white/30 uppercase tracking-[0.2em]">
+                                    {{ entry.severity }} • {{ new Date(entry.timestamp).toLocaleString() }}
+                                </div>
+                            </div>
+                            <button v-if="entry.retry_allowed && entry.context?.command"
+                                class="px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] bg-ava-purple/20 text-ava-purple hover:bg-ava-purple/30 transition-colors"
+                                @click="$ava?.sendCommand(entry.context.command)">
+                                Retry
+                            </button>
+                        </div>
+                    </div>
+                </Card>
             </TabsContent>
         </Tabs>
 
@@ -530,6 +564,7 @@ const fallbackBrainId = computed(() => $ava?.state?.fallbackBrainId)
 const rulesOnly = computed(() => $ava?.state?.rulesOnly)
 const autoSelection = computed(() => $ava?.state?.autoSelection)
 const appSettings = computed(() => $ava?.state?.appSettings || {})
+const errorLog = computed(() => $ava?.state?.errorLog || [])
 
 // Computed Helpers
 const activeBrain = computed(() => brains.value.find(b => b.id === activeBrainId.value))

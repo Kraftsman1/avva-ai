@@ -37,26 +37,39 @@ class Assistant:
         self.state = new_state
         self._emit("assistant.state", {"state": new_state})
 
-    def process_command(self, command):
+    def process_command(self, command, request_id=None):
         """Processes a string command (text or recognized speech)."""
-        self._emit("assistant.command", {"command": command})
+        self._emit("assistant.command", {"command": command, "request_id": request_id})
         self.update_state("thinking")
-        
-        response = brain.process(command)
-        
-        if response:
-            if isinstance(response, dict):
-                text = response.get("text")
-                data = response
-            else:
-                text = response
-                data = None
-                
-            self._emit("assistant.response", {"text": text, "data": data})
-            self.update_state("speaking")
-            speak(text)
-        
-        self.update_state("idle")
+
+        try:
+            response = brain.process(command)
+
+            if response:
+                if isinstance(response, dict):
+                    text = response.get("text")
+                    data = response
+                else:
+                    text = response
+                    data = None
+
+                self._emit("assistant.response", {"text": text, "data": data, "request_id": request_id})
+                self.update_state("speaking")
+                speak(text)
+        except Exception as e:
+            self._emit(
+                "core.error",
+                {
+                    "code": "BRAIN_PROCESSING_ERROR",
+                    "message": str(e),
+                    "severity": "error",
+                    "retry_allowed": True,
+                    "context": {"command": command},
+                    "request_id": request_id,
+                },
+            )
+        finally:
+            self.update_state("idle")
 
     def voice_loop(self):
         """Standard background loop for voice interaction."""
