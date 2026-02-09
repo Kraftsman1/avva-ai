@@ -1,5 +1,6 @@
 <template>
   <div class="h-screen w-screen flex bg-ava-bg text-ava-text overflow-hidden">
+    <ConversationHistory :is-open="showHistory" @close="showHistory = false" />
     <ErrorToast />
     <SuccessToast />
     <!-- Sidebar -->
@@ -8,7 +9,7 @@
     <!-- Main Content Area -->
     <div class="flex-1 flex flex-col min-w-0 relative">
       <!-- Header -->
-      <AppHeader />
+      <AppHeader @toggle-history="showHistory = !showHistory" />
 
       <!-- Content (Pages) -->
       <main class="flex-1 overflow-hidden relative">
@@ -19,7 +20,7 @@
 </template>
 
 <script setup>
-// Main layout shell
+const showHistory = ref(false)
 </script>
 
 <style>

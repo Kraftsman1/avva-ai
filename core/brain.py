@@ -17,6 +17,7 @@ from core.context_filter import ContextFilter
 from core.config import config
 from core.persistence import storage
 from core.skill_manager import skill_manager
+from core.memory import memory
 
 
 class Brain:
@@ -273,27 +274,29 @@ class Brain:
         tool_call = None
         used_native_streaming = False
 
-        if hasattr(brain, 'execute_stream') and brain.supports_capability(BrainCapability.STREAMING):
-            try:
+        try:
+            if brain.supports_capability(BrainCapability.STREAMING):
                 filtered_context = ContextFilter.filter_for_privacy_level(
                     context,
                     brain.get_privacy_level(),
                     brain.config.context_filter_level
                 )
 
-                for chunk_data in brain.execute_stream(command, filtered_context, {}):
-                    if "error" in chunk_data:
-                        break
-                    if chunk_data.get("done"):
-                        full_text = chunk_data.get("full_content", full_text)
-                        break
-                    chunk = chunk_data.get("chunk", "")
-                    if chunk:
-                        full_text += chunk
-                        on_chunk(chunk)
-                        used_native_streaming = True
-            except Exception as e:
-                print(f"⚠️ Streaming failed for {brain.name}, falling back: {e}")
+                stream_result = brain.execute_stream(command, filtered_context, {})
+                if stream_result is not None:
+                    for chunk_data in stream_result:
+                        if "error" in chunk_data:
+                            break
+                        if chunk_data.get("done"):
+                            full_text = chunk_data.get("full_content", full_text)
+                            break
+                        chunk = chunk_data.get("chunk", "")
+                        if chunk:
+                            full_text += chunk
+                            on_chunk(chunk)
+                            used_native_streaming = True
+        except Exception as e:
+            print(f"⚠️ Streaming failed for {brain.name}, falling back: {e}")
 
         if not used_native_streaming:
             response = self._get_response(command)

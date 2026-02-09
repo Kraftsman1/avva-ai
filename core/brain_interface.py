@@ -8,7 +8,7 @@ along with supporting enums and data classes for capabilities, privacy levels, a
 from abc import ABC, abstractmethod
 from enum import Enum
 from dataclasses import dataclass
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Generator, Union
 from datetime import datetime
 
 
@@ -44,7 +44,7 @@ class BrainHealth:
     message: str
     available_models: Optional[List[str]] = None
     latency_ms: Optional[float] = None
-    last_checked: datetime = None
+    last_checked: Optional[datetime] = None
     
     def __post_init__(self):
         if self.last_checked is None:
@@ -147,7 +147,12 @@ class Brain(ABC):
         """
         pass
 
-    def execute_stream(self, prompt: str, context: Dict[str, Any], constraints: Dict[str, Any]):
+    def execute_stream(
+        self,
+        prompt: str,
+        context: Dict[str, Any],
+        constraints: Dict[str, Any]
+    ) -> Generator[Dict[str, Any], None, None]:
         """
         Execute a reasoning task with streaming output.
 
@@ -156,10 +161,12 @@ class Brain(ABC):
             context: Additional context (filtered based on privacy level)
             constraints: Execution constraints (JSON schema, tools, etc.)
 
-        Returns:
-            Iterable or generator yielding response chunks, or None if not supported.
+        Yields:
+            Dict with 'chunk' key for partial responses, 'done' key when complete.
+            Subclasses can yield {'error': str, 'done': True} on failure.
         """
-        return None
+        return
+        yield
     
     def update_config(self, config_data: Dict[str, Any]) -> bool:
         """

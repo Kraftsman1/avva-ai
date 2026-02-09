@@ -1,0 +1,25 @@
+{
+  "id": "memory",
+  "name": "Memory",
+  "description": "Recall and search through past conversations",
+  "version": "1.0.0",
+  "author": "AVVA",
+  "permissions": [],
+  "intents": [
+    {
+      "id": "recall",
+      "patterns": ["recall", "remember", "what did i ask", "search conversations", "find my previous"],
+      "description": "Search through past conversations"
+    },
+    {
+      "id": "list_conversations",
+      "patterns": ["show conversations", "list chats", "my history", "previous chats"],
+      "description": "List recent conversations"
+    },
+    {
+      "id": "clear_memory",
+      "patterns": ["clear memory", "delete conversations", "forget everything"],
+      "description": "Clear conversation history"
+    }
+  ]
+}

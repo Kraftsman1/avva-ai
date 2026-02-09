@@ -45,17 +45,20 @@ class WebSocketServer:
 
     def assistant_callback(self, event_type, data):
         """Callback from assistant to broadcast events."""
+        print(f"📡 WS callback: {event_type}")
         if self.loop and self.clients:
             message_id = data.get("request_id")
             payload = dict(data)
             payload.pop("request_id", None)
+            message = {
+                "id": message_id or str(uuid.uuid4()),
+                "type": event_type,
+                "payload": payload,
+                "timestamp": datetime.now().isoformat()
+            }
+            print(f"📡 Broadcasting: {event_type} to {len(self.clients)} clients")
             asyncio.run_coroutine_threadsafe(
-                self.broadcast({
-                    "id": message_id or str(uuid.uuid4()),
-                    "type": event_type,
-                    "payload": payload,
-                    "timestamp": datetime.now().isoformat()
-                }),
+                self.broadcast(message),
                 self.loop
             )
 
@@ -106,6 +109,7 @@ class WebSocketServer:
                     if event_type == "assistant.command":
                         command = payload.get("command")
                         if command:
+                            print(f"🔤 Received command: {command} (id: {message_id})")
                             # Forward command to assistant in a separate thread
                             threading.Thread(
                                 target=assistant.process_command,
@@ -237,6 +241,64 @@ class WebSocketServer:
                             updates,
                             message_id
                         ))
+
+                    elif event_type == "conversation.list":
+                        from core.memory import memory
+                        from core.persistence import storage
+                        limit = payload.get("limit", 20)
+                        sessions = memory.list_recent_sessions(limit=limit)
+                        await websocket.send(json.dumps(self._build_message(
+                            "conversation.list",
+                            {"sessions": sessions},
+                            message_id
+                        )))
+
+                    elif event_type == "conversation.get":
+                        from core.memory import memory
+                        from core.persistence import storage
+                        session_id = payload.get("session_id")
+                        if session_id:
+                            messages = memory.get_session_history(session_id=session_id)
+                            session = storage.get_session(session_id)
+                        else:
+                            messages = memory.get_session_history()
+                            session = storage.get_session(memory.current_session_id) if memory.current_session_id else None
+                        await websocket.send(json.dumps(self._build_message(
+                            "conversation.messages",
+                            {"session": session, "messages": messages},
+                            message_id
+                        )))
+
+                    elif event_type == "conversation.delete":
+                        from core.memory import memory
+                        session_id = payload.get("session_id")
+                        if session_id:
+                            memory.delete_session(session_id)
+                        await websocket.send(json.dumps(self._build_message(
+                            "conversation.deleted",
+                            {"session_id": session_id},
+                            message_id
+                        )))
+
+                    elif event_type == "conversation.search":
+                        from core.memory import memory
+                        query = payload.get("query", "")
+                        results = memory.recall(query)
+                        await websocket.send(json.dumps(self._build_message(
+                            "conversation.search_results",
+                            {"query": query, "results": results},
+                            message_id
+                        )))
+
+                    elif event_type == "conversation.start":
+                        from core.memory import memory
+                        title = payload.get("title")
+                        session_id = memory.start_session(title=title)
+                        await websocket.send(json.dumps(self._build_message(
+                            "conversation.started",
+                            {"session_id": session_id},
+                            message_id
+                        )))
 
                 except json.JSONDecodeError:
                     print("⚠️ Received invalid JSON from client.")

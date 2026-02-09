@@ -72,7 +72,56 @@ class Persistence:
                 FOREIGN KEY (brain_id) REFERENCES brains(id) ON DELETE CASCADE
             )
         ''')
-        
+
+        # Table for conversation sessions
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS conversation_sessions (
+                id TEXT PRIMARY KEY,
+                created_at DATETIME,
+                updated_at DATETIME,
+                title TEXT,
+                brain_id TEXT
+            )
+        ''')
+
+        # Table for conversation messages (richer than history)
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS conversation_messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT,
+                role TEXT,
+                content TEXT,
+                timestamp DATETIME,
+                brain_id TEXT,
+                intent TEXT,
+                tool_call TEXT,
+                embedding TEXT,
+                FOREIGN KEY (session_id) REFERENCES conversation_sessions(id) ON DELETE CASCADE
+            )
+        ''')
+
+        # Table for memory/recalls (for semantic search)
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS memory_entries (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                key TEXT,
+                value TEXT,
+                source TEXT,
+                created_at DATETIME,
+                expires_at DATETIME,
+                embedding TEXT
+            )
+        ''')
+
+        # Table for settings
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS settings (
+                key TEXT PRIMARY KEY,
+                value TEXT,
+                updated_at DATETIME
+            )
+        ''')
+
         conn.commit()
         conn.close()
 
@@ -277,21 +326,21 @@ class Persistence:
         """Get usage statistics for a Brain."""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
-        
+
         cutoff = datetime.datetime.now() - datetime.timedelta(days=days)
-        
+
         cursor.execute('''
-            SELECT 
+            SELECT
                 COUNT(*) as request_count,
                 SUM(tokens_used) as total_tokens,
                 SUM(cost_usd) as total_cost
             FROM brain_usage
             WHERE brain_id = ? AND timestamp > ?
         ''', (brain_id, cutoff))
-        
+
         row = cursor.fetchone()
         conn.close()
-        
+
         if row:
             return {
                 'request_count': row[0] or 0,
@@ -299,5 +348,198 @@ class Persistence:
                 'total_cost': row[2] or 0.0
             }
         return {'request_count': 0, 'total_tokens': 0, 'total_cost': 0.0}
+
+    # ===== Conversation Memory Methods =====
+
+    def create_session(self, session_id=None, title=None, brain_id=None):
+        """Create a new conversation session."""
+        import uuid
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        try:
+            session_id = session_id or str(uuid.uuid4())
+            now = datetime.datetime.now()
+            cursor.execute('''
+                INSERT INTO conversation_sessions (id, created_at, updated_at, title, brain_id)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (session_id, now, now, title or "New Conversation", brain_id))
+            conn.commit()
+            return session_id
+        finally:
+            conn.close()
+
+    def add_message(self, session_id, role, content, brain_id=None, intent=None, tool_call=None):
+        """Add a message to a conversation session."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        try:
+            now = datetime.datetime.now()
+            cursor.execute('''
+                INSERT INTO conversation_messages (session_id, role, content, timestamp, brain_id, intent, tool_call)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', (session_id, role, content, now, brain_id, intent, tool_call))
+            cursor.execute('''
+                UPDATE conversation_sessions SET updated_at = ? WHERE id = ?
+            ''', (now, session_id))
+            conn.commit()
+            return cursor.lastrowid
+        finally:
+            conn.close()
+
+    def get_session(self, session_id):
+        """Get a conversation session by ID."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        try:
+            cursor.execute('''
+                SELECT id, created_at, updated_at, title, brain_id
+                FROM conversation_sessions WHERE id = ?
+            ''', (session_id,))
+            row = cursor.fetchone()
+            if row:
+                return {
+                    'id': row[0],
+                    'created_at': row[1],
+                    'updated_at': row[2],
+                    'title': row[3],
+                    'brain_id': row[4]
+                }
+            return None
+        finally:
+            conn.close()
+
+    def get_session_messages(self, session_id, limit=100):
+        """Get all messages in a conversation session."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        try:
+            cursor.execute('''
+                SELECT id, role, content, timestamp, brain_id, intent, tool_call
+                FROM conversation_messages
+                WHERE session_id = ?
+                ORDER BY timestamp ASC
+                LIMIT ?
+            ''', (session_id, limit))
+            rows = cursor.fetchall()
+            return [{
+                'id': row[0],
+                'role': row[1],
+                'content': row[2],
+                'timestamp': row[3],
+                'brain_id': row[4],
+                'intent': row[5],
+                'tool_call': row[6]
+            } for row in rows]
+        finally:
+            conn.close()
+
+    def list_sessions(self, limit=50, offset=0):
+        """List recent conversation sessions."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        try:
+            cursor.execute('''
+                SELECT id, created_at, updated_at, title, brain_id
+                FROM conversation_sessions
+                ORDER BY updated_at DESC
+                LIMIT ? OFFSET ?
+            ''', (limit, offset))
+            rows = cursor.fetchall()
+            return [{
+                'id': row[0],
+                'created_at': row[1],
+                'updated_at': row[2],
+                'title': row[3],
+                'brain_id': row[4]
+            } for row in rows]
+        finally:
+            conn.close()
+
+    def search_conversations(self, query, limit=10):
+        """Search conversations by content (simple LIKE search)."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        try:
+            search_term = f"%{query}%"
+            cursor.execute('''
+                SELECT DISTINCT m.session_id, s.title, s.updated_at
+                FROM conversation_messages m
+                JOIN conversation_sessions s ON m.session_id = s.id
+                WHERE m.content LIKE ?
+                ORDER BY s.updated_at DESC
+                LIMIT ?
+            ''', (search_term, limit))
+            rows = cursor.fetchall()
+            return [{
+                'session_id': row[0],
+                'title': row[1],
+                'updated_at': row[2]
+            } for row in rows]
+        finally:
+            conn.close()
+
+    def delete_session(self, session_id):
+        """Delete a conversation session and all its messages."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        try:
+            cursor.execute('DELETE FROM conversation_messages WHERE session_id = ?', (session_id,))
+            cursor.execute('DELETE FROM conversation_sessions WHERE id = ?', (session_id,))
+            conn.commit()
+            return True
+        except Exception as e:
+            print(f"Error deleting session: {e}")
+            return False
+        finally:
+            conn.close()
+
+    def delete_old_sessions(self, days=30):
+        """Delete sessions older than specified days."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        try:
+            cutoff = datetime.datetime.now() - datetime.timedelta(days=days)
+            cursor.execute('''
+                DELETE FROM conversation_messages
+                WHERE session_id IN (
+                    SELECT id FROM conversation_sessions WHERE updated_at < ?
+                )
+            ''', (cutoff,))
+            cursor.execute('DELETE FROM conversation_sessions WHERE updated_at < ?', (cutoff,))
+            conn.commit()
+            return True
+        except Exception as e:
+            print(f"Error deleting old sessions: {e}")
+            return False
+        finally:
+            conn.close()
+
+    # ===== Settings Methods =====
+
+    def get_setting(self, key, default=None):
+        """Get a setting value."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        try:
+            cursor.execute('SELECT value FROM settings WHERE key = ?', (key,))
+            row = cursor.fetchone()
+            return row[0] if row else default
+        finally:
+            conn.close()
+
+    def set_setting(self, key, value):
+        """Set a setting value."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        try:
+            now = datetime.datetime.now()
+            cursor.execute('''
+                INSERT OR REPLACE INTO settings (key, value, updated_at)
+                VALUES (?, ?, ?)
+            ''', (key, value, now))
+            conn.commit()
+            return True
+        finally:
+            conn.close()
 
 storage = Persistence()

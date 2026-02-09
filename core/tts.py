@@ -36,7 +36,9 @@ def speak(text, interrupt_callback=None):
             _speak_gtts(text, filename)
 
         _speaking = True
-        _play_audio(filename, interrupt_callback)
+        import threading
+        playback_thread = threading.Thread(target=_play_audio, args=(filename, interrupt_callback), daemon=True)
+        playback_thread.start()
     except Exception as e:
         print(f"TTS Error ({engine}): {e}")
     finally:

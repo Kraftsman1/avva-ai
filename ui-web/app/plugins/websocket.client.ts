@@ -33,7 +33,10 @@ export default defineNuxtPlugin(() => {
         errorLog: [] as CoreError[],
         errorToasts: [] as CoreError[],
         successToasts: [] as { id: string; message: string }[],
-        pendingOps: [] as { id: string; label: string }[]
+        pendingOps: [] as { id: string; label: string }[],
+        conversations: [] as any[],
+        currentConversationId: null as string | null,
+        conversationMessages: [] as any[]
     })
 
     let ws: WebSocket | null = null
@@ -122,16 +125,26 @@ export default defineNuxtPlugin(() => {
                     state.assistantState = payload.state
                     break
                 case 'assistant.response':
+                    console.log('💬 assistant.response received:', payload.text?.slice(0, 50))
                     if (id && pendingRequests.has(id)) {
                         clearTimeout(pendingRequests.get(id))
                         pendingRequests.delete(id)
                     }
-                    state.messages.push({
-                        id: Date.now(),
-                        text: payload.text,
-                        sender: 'avva',
-                        data: payload.data
-                    })
+                    const streamIdx = state.messages.findIndex(m => (m as any).streamId === id)
+                    if (streamIdx >= 0) {
+                        state.messages[streamIdx].text = payload.text
+                        state.messages[streamIdx].data = payload.data
+                        delete (state.messages[streamIdx] as any).streamId
+                        console.log('✅ Updated existing stream message')
+                    } else {
+                        state.messages.push({
+                            id: Date.now(),
+                            text: payload.text,
+                            sender: 'avva',
+                            data: payload.data
+                        })
+                        console.log('💬 Added new response message')
+                    }
                     break
                 case 'assistant.command':
                     state.messages.push({
@@ -141,8 +154,13 @@ export default defineNuxtPlugin(() => {
                     })
                     break
                 case 'assistant.stream': {
-                    if (!id) break
+                    if (!id) {
+                        console.log('⚠️ assistant.stream missing id')
+                        break
+                    }
+                    console.log('📝 Stream chunk received')
                     if (payload.done) {
+                        console.log('✅ Stream complete')
                         if (pendingRequests.has(id)) {
                             clearTimeout(pendingRequests.get(id))
                             pendingRequests.delete(id)
@@ -156,19 +174,18 @@ export default defineNuxtPlugin(() => {
                         break
                     }
                     const chunk = payload.chunk || ''
-                    if (!streamingMessages.has(id)) {
+                    const streamIdx = state.messages.findIndex(m => (m as any).streamId === id)
+                    if (streamIdx >= 0) {
+                        state.messages[streamIdx].text += chunk
+                        console.log(`📝 Updated stream message: ${state.messages[streamIdx].text.length} chars`)
+                    } else {
                         state.messages.push({
                             id: Date.now(),
                             text: chunk,
-                            sender: 'avva'
+                            sender: 'avva',
+                            streamId: id
                         })
-                        streamingMessages.set(id, state.messages.length - 1)
-                    } else {
-                        const index = streamingMessages.get(id)
-                        const message = state.messages[index]
-                        if (message) {
-                            message.text += chunk
-                        }
+                        console.log(`📝 New stream message: ${chunk.length} chars`)
                     }
                     break
                 }
@@ -263,6 +280,15 @@ export default defineNuxtPlugin(() => {
                         addSuccessToast('Settings saved.')
                     }
                     break
+                case 'conversation.list':
+                    state.conversations = payload.sessions || []
+                    break
+                case 'conversation.messages':
+                    state.currentConversationId = payload.session?.id || null
+                    state.conversationMessages = payload.messages || []
+                    break
+                case 'conversation.search_results':
+                    break
                 case 'core.error': {
                     const errorEntry: CoreError = {
                         id: id || generateId(),
@@ -301,14 +327,18 @@ export default defineNuxtPlugin(() => {
     }
 
     const sendCommand = (command: string) => {
+        console.log('📤 Sending command:', command.slice(0, 50))
         if (ws && ws.readyState === WebSocket.OPEN) {
             const requestId = generateId()
+            console.log('📤 Request ID:', requestId)
             ws.send(JSON.stringify({
                 id: requestId,
                 type: 'assistant.command',
                 payload: { command }
             }))
             registerRequestTimeout(requestId, `assistant.command "${command}"`)
+        } else {
+            console.error('❌ WebSocket not connected! readyState:', ws?.readyState)
         }
     }
 
@@ -418,6 +448,58 @@ export default defineNuxtPlugin(() => {
         }
     }
 
+    const fetchConversations = (limit = 20) => {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+                id: generateId(),
+                type: 'conversation.list',
+                payload: { limit }
+            }))
+        }
+    }
+
+    const loadConversation = (sessionId: string | null = null) => {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+                id: generateId(),
+                type: 'conversation.get',
+                payload: { session_id: sessionId }
+            }))
+        }
+    }
+
+    const deleteConversation = (sessionId: string) => {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+                id: generateId(),
+                type: 'conversation.delete',
+                payload: { session_id: sessionId }
+            }))
+            fetchConversations()
+        }
+    }
+
+    const searchConversations = (query: string) => {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+                id: generateId(),
+                type: 'conversation.search',
+                payload: { query }
+            }))
+        }
+    }
+
+    const startConversation = (title?: string) => {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+                id: generateId(),
+                type: 'conversation.start',
+                payload: { title }
+            }))
+            fetchConversations()
+        }
+    }
+
     // Auto-connect on client init
     if (typeof window !== 'undefined') {
         connect()
@@ -438,7 +520,12 @@ export default defineNuxtPlugin(() => {
                 updateSettings,
                 startVoiceCapture,
                 dismissErrorToast,
-                retryError
+                retryError,
+                fetchConversations,
+                loadConversation,
+                deleteConversation,
+                searchConversations,
+                startConversation
             }
         }
     }

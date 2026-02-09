@@ -34,6 +34,9 @@
 
     <div class="flex items-center gap-6">
       <div class="flex items-center gap-2 border-r border-white/[0.03] pr-6">
+        <Button variant="ghost" size="icon" @click="$emit('toggle-history')" class="h-8 w-8 text-white/40 hover:text-ava-purple hover:bg-white/5 rounded-lg" title="Conversation History">
+          <Clock :size="16" stroke-width="2.5" />
+        </Button>
         <Button variant="ghost" size="icon" class="h-8 w-8 text-white/40 hover:text-white hover:bg-white/5 rounded-lg">
           <Settings :size="16" stroke-width="2.5" />
         </Button>
@@ -58,7 +61,8 @@
 </template>
 
 <script setup>
-import { Settings, Maximize2, X } from 'lucide-vue-next'
+import { Settings, Maximize2, X, Clock } from 'lucide-vue-next'
+defineEmits(['toggle-history'])
 const { $ava } = useNuxtApp()
 
 const assistantState = computed(() => $ava?.state?.assistantState || 'idle')
