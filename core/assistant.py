@@ -37,26 +37,64 @@ class Assistant:
         self.state = new_state
         self._emit("assistant.state", {"state": new_state})
 
-    def process_command(self, command):
+    def process_command(self, command, request_id=None, stream=False):
         """Processes a string command (text or recognized speech)."""
-        self._emit("assistant.command", {"command": command})
+        self._emit("assistant.command", {"command": command, "request_id": request_id})
         self.update_state("thinking")
-        
-        response = brain.process(command)
-        
-        if response:
-            if isinstance(response, dict):
-                text = response.get("text")
-                data = response
+
+        try:
+            if stream:
+                has_streamed = False
+
+                def on_chunk(chunk):
+                    nonlocal has_streamed
+                    self._emit(
+                        "assistant.stream",
+                        {"chunk": chunk, "done": False, "request_id": request_id}
+                    )
+                    if not has_streamed:
+                        has_streamed = True
+                        self.update_state("speaking")
+
+                text, data = brain.process_stream(command, on_chunk)
+
+                self._emit(
+                    "assistant.stream",
+                    {"done": True, "request_id": request_id}
+                )
+
+                if text:
+                    if not has_streamed:
+                        self.update_state("speaking")
+                    speak(text)
             else:
-                text = response
-                data = None
-                
-            self._emit("assistant.response", {"text": text, "data": data})
-            self.update_state("speaking")
-            speak(text)
-        
-        self.update_state("idle")
+                response = brain.process(command)
+
+                if response:
+                    if isinstance(response, dict):
+                        text = response.get("text")
+                        data = response
+                    else:
+                        text = response
+                        data = None
+
+                    self._emit("assistant.response", {"text": text, "data": data, "request_id": request_id})
+                    self.update_state("speaking")
+                    speak(text)
+        except Exception as e:
+            self._emit(
+                "core.error",
+                {
+                    "code": "BRAIN_PROCESSING_ERROR",
+                    "message": str(e),
+                    "severity": "error",
+                    "retry_allowed": True,
+                    "context": {"command": command},
+                    "request_id": request_id,
+                },
+            )
+        finally:
+            self.update_state("idle")
 
     def voice_loop(self):
         """Standard background loop for voice interaction."""

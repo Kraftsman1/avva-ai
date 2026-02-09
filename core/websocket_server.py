@@ -3,6 +3,7 @@ import websockets
 import threading
 import psutil
 import json
+import uuid
 from datetime import datetime
 from core.assistant import assistant
 
@@ -24,11 +25,10 @@ class WebSocketServer:
         print(f"🔌 Client connected: {websocket.remote_address}")
         # Send initial state
         import json
-        await websocket.send(json.dumps({
-            "type": "assistant.state",
-            "payload": {"state": assistant.state},
-            "timestamp": datetime.now().isoformat()
-        }))
+        await websocket.send(json.dumps(self._build_message(
+            "assistant.state",
+            {"state": assistant.state}
+        )))
 
     async def unregister(self, websocket):
         self.clients.remove(websocket)
@@ -46,34 +46,73 @@ class WebSocketServer:
     def assistant_callback(self, event_type, data):
         """Callback from assistant to broadcast events."""
         if self.loop and self.clients:
+            message_id = data.get("request_id")
+            payload = dict(data)
+            payload.pop("request_id", None)
             asyncio.run_coroutine_threadsafe(
                 self.broadcast({
+                    "id": message_id or str(uuid.uuid4()),
                     "type": event_type,
-                    "payload": data,
+                    "payload": payload,
                     "timestamp": datetime.now().isoformat()
                 }),
                 self.loop
             )
 
+    def _build_message(self, event_type, payload, message_id=None):
+        return {
+            "id": message_id or str(uuid.uuid4()),
+            "type": event_type,
+            "payload": payload,
+            "timestamp": datetime.now().isoformat()
+        }
+
+    def _build_error_payload(self, code, message, severity="error", retry_allowed=False, context=None):
+        return {
+            "code": code,
+            "message": message,
+            "severity": severity,
+            "retry_allowed": retry_allowed,
+            "context": context or {},
+        }
+
+    async def _broadcast_error(self, message_id, code, message, context=None, retry_allowed=False):
+        await self.broadcast(
+            self._build_message(
+                "core.error",
+                self._build_error_payload(
+                    code,
+                    message,
+                    severity="error",
+                    retry_allowed=retry_allowed,
+                    context=context,
+                ),
+                message_id,
+            )
+        )
+
     async def handler(self, websocket):
         await self.register(websocket)
         try:
             async for message in websocket:
+                message_id = str(uuid.uuid4())
+                event_type = None
                 try:
                     data = json.loads(message)
                     event_type = data.get("type")
                     payload = data.get("payload", {})
-                    
+                    message_id = data.get("id") or message_id
+
                     if event_type == "assistant.command":
                         command = payload.get("command")
                         if command:
                             # Forward command to assistant in a separate thread
                             threading.Thread(
-                                target=assistant.process_command, 
-                                args=(command,), 
+                                target=assistant.process_command,
+                                args=(command, message_id, True),
                                 daemon=True
                             ).start()
-                            
+
                     elif event_type == "assistant.interrupt":
                         # Logic to interrupt assistant
                         assistant.listening_enabled = False
@@ -82,11 +121,11 @@ class WebSocketServer:
 
                     elif event_type == "config.get":
                         from core.config import config
-                        await websocket.send(json.dumps({
-                            "type": "config.data",
-                            "payload": config.user_config,
-                            "timestamp": datetime.now().isoformat()
-                        }))
+                        await websocket.send(json.dumps(self._build_message(
+                            "config.data",
+                            config.user_config,
+                            message_id
+                        )))
 
                     elif event_type == "config.update":
                         from core.config import config
@@ -95,26 +134,26 @@ class WebSocketServer:
                         if key is not None:
                             config.save_config(key, value)
                             # Broadcast update to all clients
-                            await self.broadcast({
-                                "type": "config.updated",
-                                "payload": {key: value},
-                                "timestamp": datetime.now().isoformat()
-                            })
+                            await self.broadcast(self._build_message(
+                                "config.updated",
+                                {key: value},
+                                message_id
+                            ))
 
                     elif event_type == "brains.list":
                         from core.brain_manager import brain_manager
                         brains_info = brain_manager.get_brain_display_info()
-                        await websocket.send(json.dumps({
-                            "type": "brains.data",
-                            "payload": {
+                        await websocket.send(json.dumps(self._build_message(
+                            "brains.data",
+                            {
                                 "brains": brains_info,
                                 "active_id": brain_manager.active_brain_id,
                                 "fallback_id": brain_manager.fallback_brain_id,
                                 "rules_only": brain_manager.rules_only_mode,
                                 "auto_selection": brain_manager.auto_selection_enabled
                             },
-                            "timestamp": datetime.now().isoformat()
-                        }))
+                            message_id
+                        )))
 
                     elif event_type == "brains.select":
                         from core.brain_manager import brain_manager
@@ -124,15 +163,15 @@ class WebSocketServer:
                             brain_manager.set_active_brain(brain_id)
                         elif target == "fallback":
                             brain_manager.set_fallback_brain(brain_id)
-                        
-                        await self.broadcast({
-                            "type": "brains.updated",
-                            "payload": {
+
+                        await self.broadcast(self._build_message(
+                            "brains.updated",
+                            {
                                 "active_id": brain_manager.active_brain_id,
                                 "fallback_id": brain_manager.fallback_brain_id
                             },
-                            "timestamp": datetime.now().isoformat()
-                        })
+                            message_id
+                        ))
 
                     elif event_type == "brains.toggle_mode":
                         from core.brain_manager import brain_manager
@@ -142,60 +181,74 @@ class WebSocketServer:
                             brain_manager.set_rules_only_mode(enabled)
                         elif mode == "auto_selection":
                             brain_manager.set_auto_selection(enabled)
-                        
-                        await self.broadcast({
-                            "type": "brains.mode_updated",
-                            "payload": {
+
+                        await self.broadcast(self._build_message(
+                            "brains.mode_updated",
+                            {
                                 "rules_only": brain_manager.rules_only_mode,
                                 "auto_selection": brain_manager.auto_selection_enabled
                             },
-                            "timestamp": datetime.now().isoformat()
-                        })
+                            message_id
+                        ))
 
                     elif event_type == "brains.update_config":
                         from core.brain_manager import brain_manager
                         brain_id = payload.get("brain_id")
                         config_data = payload.get("config", {})
                         success = brain_manager.update_brain_config(brain_id, config_data)
-                        
+
                         if success:
                             # Broadcast updated brain data
                             brains_info = brain_manager.get_brain_display_info()
-                            await self.broadcast({
-                                "type": "brains.data",
-                                "payload": {
+                            await self.broadcast(self._build_message(
+                                "brains.data",
+                                {
                                     "brains": brains_info,
                                     "active_id": brain_manager.active_brain_id,
                                     "fallback_id": brain_manager.fallback_brain_id,
                                     "rules_only": brain_manager.rules_only_mode,
                                     "auto_selection": brain_manager.auto_selection_enabled
                                 },
-                                "timestamp": datetime.now().isoformat()
-                            })
+                                message_id
+                            ))
 
                     elif event_type == "settings.get":
                         from core.config import config
                         # Filter out sensitive keys for broad broadcast? No, just send it for now
-                        await websocket.send(json.dumps({
-                            "type": "settings.data",
-                            "payload": config.defaults, # This includes merged env defaults
-                            "timestamp": datetime.now().isoformat()
-                        }))
+                        await websocket.send(json.dumps(self._build_message(
+                            "settings.data",
+                            config.defaults, # This includes merged env defaults
+                            message_id
+                        )))
 
                     elif event_type == "settings.update":
                         from core.config import config
                         updates = payload.get("settings", {})
                         for k, v in updates.items():
                             config.save_config(k, v)
-                        
-                        await self.broadcast({
-                            "type": "settings.updated",
-                            "payload": updates,
-                            "timestamp": datetime.now().isoformat()
-                        })
-                        
+
+                        await self.broadcast(self._build_message(
+                            "settings.updated",
+                            updates,
+                            message_id
+                        ))
+
                 except json.JSONDecodeError:
                     print("⚠️ Received invalid JSON from client.")
+                    await self._broadcast_error(
+                        message_id,
+                        "INVALID_JSON",
+                        "Received invalid JSON from client.",
+                        context={"event_type": event_type},
+                    )
+                except Exception as e:
+                    await self._broadcast_error(
+                        message_id,
+                        "WS_HANDLER_ERROR",
+                        str(e),
+                        context={"event_type": event_type},
+                        retry_allowed=True,
+                    )
         except websockets.exceptions.ConnectionClosed:
             pass
         finally:
@@ -236,6 +289,7 @@ class WebSocketServer:
                         stats["vram"] = 0
 
                     await self.broadcast({
+                        "id": str(uuid.uuid4()),
                         "type": "system.stats",
                         "payload": stats,
                         "timestamp": datetime.now().isoformat()
@@ -248,6 +302,7 @@ class WebSocketServer:
                         "npu_acceleration": 64 if nvml_initialized else 0,
                     }
                     await self.broadcast({
+                        "id": str(uuid.uuid4()),
                         "type": "intelligence.stats",
                         "payload": intelligence_stats,
                         "timestamp": datetime.now().isoformat()

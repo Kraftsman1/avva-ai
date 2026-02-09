@@ -146,6 +146,20 @@ class Brain(ABC):
             BrainResponse with results or error
         """
         pass
+
+    def execute_stream(self, prompt: str, context: Dict[str, Any], constraints: Dict[str, Any]):
+        """
+        Execute a reasoning task with streaming output.
+
+        Args:
+            prompt: User's input/query
+            context: Additional context (filtered based on privacy level)
+            constraints: Execution constraints (JSON schema, tools, etc.)
+
+        Returns:
+            Iterable or generator yielding response chunks, or None if not supported.
+        """
+        return None
     
     def update_config(self, config_data: Dict[str, Any]) -> bool:
         """
