@@ -1,7 +1,7 @@
 import threading
 import time
 from core.stt import listen
-from core.tts import speak
+from core.tts import speak, speak_interrupt
 from core.brain import brain
 from core.config import config
 from core.persistence import storage
@@ -12,12 +12,15 @@ class Assistant:
     Headless Assistant class that manages the main interaction loop.
     Decoupled from any Gtk dependency.
     """
-    
+
     def __init__(self):
         self.active = True
         self.listening_enabled = True
         self.callbacks = []
-        self.state = "idle" # listening, thinking, speaking, idle
+        self.state = "idle"
+        self._interrupt_event = threading.Event()
+        self._current_request_id = None
+        self._current_thread = None
         
     def add_callback(self, callback):
         """
@@ -39,15 +42,22 @@ class Assistant:
 
     def process_command(self, command, request_id=None, stream=False):
         """Processes a string command (text or recognized speech)."""
+        self._interrupt_event.clear()
+        self._current_request_id = request_id
+
         self._emit("assistant.command", {"command": command, "request_id": request_id})
         self.update_state("thinking")
 
         try:
             if stream:
                 has_streamed = False
+                streaming_complete = False
 
                 def on_chunk(chunk):
-                    nonlocal has_streamed
+                    nonlocal has_streamed, streaming_complete
+                    if self._interrupt_event.is_set():
+                        streaming_complete = True
+                        return
                     self._emit(
                         "assistant.stream",
                         {"chunk": chunk, "done": False, "request_id": request_id}
@@ -58,12 +68,16 @@ class Assistant:
 
                 text, data = brain.process_stream(command, on_chunk)
 
+                if streaming_complete:
+                    self.update_state("idle")
+                    return
+
                 self._emit(
                     "assistant.stream",
                     {"done": True, "request_id": request_id}
                 )
 
-                if text:
+                if text and not self._interrupt_event.is_set():
                     if not has_streamed:
                         self.update_state("speaking")
                     speak(text)
@@ -79,8 +93,9 @@ class Assistant:
                         data = None
 
                     self._emit("assistant.response", {"text": text, "data": data, "request_id": request_id})
-                    self.update_state("speaking")
-                    speak(text)
+                    if not self._interrupt_event.is_set():
+                        self.update_state("speaking")
+                        speak(text)
         except Exception as e:
             self._emit(
                 "core.error",
@@ -94,7 +109,14 @@ class Assistant:
                 },
             )
         finally:
-            self.update_state("idle")
+            self._current_request_id = None
+            if self.state != "idle":
+                self.update_state("idle")
+
+    def interrupt(self):
+        """Interrupt the current command processing."""
+        self._interrupt_event.set()
+        speak_interrupt()
 
     def voice_loop(self):
         """Standard background loop for voice interaction."""

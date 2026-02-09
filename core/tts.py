@@ -1,17 +1,26 @@
 from pygame import mixer
 import os
 import requests
+import threading
 from core.config import config
 
-def speak(text):
+_speaking = False
+_playback_thread = None
+
+def speak(text, interrupt_callback=None):
     """Orchestrates Text-to-Speech using the configured engine."""
+    global _speaking, _playback_thread
+
+    if _speaking:
+        print("🛑 Stopping previous speech...")
+        stop_speak()
+
     engine = config.TTS_ENGINE.lower()
     print(f"{config.NAME}: {text}")
-    
-    # Create temp directory
+
     os.makedirs('temp/media', exist_ok=True)
     filename = os.path.join('temp/media', 'response.mp3')
-    
+
     try:
         if engine == "gtts":
             _speak_gtts(text, filename)
@@ -20,25 +29,47 @@ def speak(text):
         elif engine == "elevenlabs":
             _speak_elevenlabs(text, filename)
         elif engine == "piper":
-            # Piper usually outputs WAV
             filename = filename.replace('.mp3', '.wav')
             _speak_piper(text, filename)
         else:
             print(f"Unknown TTS engine: {engine}. Falling back to gTTS.")
             _speak_gtts(text, filename)
 
-        _play_audio(filename)
+        _speaking = True
+        _play_audio(filename, interrupt_callback)
     except Exception as e:
         print(f"TTS Error ({engine}): {e}")
+    finally:
+        _speaking = False
 
-def _play_audio(filename):
-    """Plays the generated audio file."""
+def speak_interrupt():
+    """Simply stop any ongoing speech without generating new audio."""
+    stop_speak()
+
+def stop_speak():
+    """Stop any ongoing speech."""
+    global _speaking
+    try:
+        if mixer.get_init():
+            mixer.music.stop()
+            mixer.quit()
+    except Exception:
+        pass
+    _speaking = False
+
+def _play_audio(filename, interrupt_callback=None):
+    """Plays the generated audio file with interrupt support."""
+    global _speaking
     try:
         mixer.init()
         mixer.music.load(filename)
         mixer.music.play()
-        while mixer.music.get_busy():
-            continue
+
+        while mixer.music.get_busy() and _speaking:
+            if interrupt_callback and interrupt_callback():
+                print("🛑 Speech interrupted by callback")
+                mixer.music.stop()
+                break
         mixer.quit()
     except Exception as e:
         print(f"Playback Error: {e}")

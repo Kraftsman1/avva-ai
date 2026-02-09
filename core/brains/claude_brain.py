@@ -166,7 +166,44 @@ class ClaudeBrain(BaseBrain):
                 
         except Exception as e:
             return self._build_error_response(f"Claude error: {str(e)}")
-    
+
+    def execute_stream(self, prompt: str, context: Dict[str, Any], constraints: Dict[str, Any]):
+        """
+        Execute streaming reasoning with Claude.
+
+        Yields chunks of the response as they become available.
+
+        Args:
+            prompt: User's input/query
+            context: Additional context
+            constraints: Execution constraints
+
+        Yields:
+            Dict with 'chunk' key containing the text chunk, or 'done' when complete
+        """
+        if not self.client:
+            self._init_client()
+
+        system_prompt = self._build_system_prompt(context, constraints)
+
+        try:
+            with self.client.messages.stream(
+                model=self.model,
+                max_tokens=self.max_tokens,
+                temperature=self.temperature,
+                system=system_prompt,
+                messages=[{"role": "user", "content": prompt}]
+            ) as stream:
+                full_content = ""
+                for chunk in stream.text:
+                    full_content += chunk
+                    yield {"chunk": chunk}
+
+            yield {"done": True, "full_content": full_content}
+
+        except Exception as e:
+            yield {"error": str(e), "done": True}
+
     def estimate_cost(self, prompt: str) -> float:
         """Estimate cost for Claude."""
         # Rough token estimation (4 chars ≈ 1 token)

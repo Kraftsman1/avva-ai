@@ -114,10 +114,8 @@ class WebSocketServer:
                             ).start()
 
                     elif event_type == "assistant.interrupt":
-                        # Logic to interrupt assistant
-                        assistant.listening_enabled = False
-                        assistant.update_state("idle")
-                        assistant.listening_enabled = True
+                        print("⚡ Interrupt received, stopping current operation...")
+                        assistant.interrupt()
 
                     elif event_type == "assistant.voice_start":
                         threading.Thread(

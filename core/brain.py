@@ -6,7 +6,7 @@ while delegating to the new Brain Manager architecture.
 """
 
 from core.brain_manager import brain_manager
-from core.brain_interface import BrainConfig
+from core.brain_interface import BrainConfig, BrainCapability
 from core.brains.rules_brain import RulesBrain
 from core.brains.ollama_brain import OllamaBrain
 from core.brains.google_brain import GoogleBrain
@@ -253,30 +253,66 @@ class Brain:
         Args:
             command: User input string.
             on_chunk: Callable that receives chunk strings.
-            chunk_size: Character size per chunk.
+            chunk_size: Character size per chunk (fallback for non-streaming brains).
+
+        Returns:
+            Tuple of (full_text, data) or (None, None) on failure.
         """
         if not command:
             return None, None
 
         storage.log_interaction("user", command)
 
-        response = self._get_response(command)
+        context = self._build_context(command)
+        brain = self.manager.select_brain(context)
 
-        if response:
-            if isinstance(response, dict):
-                text = response.get("text") or ""
-                data = response
-            else:
-                text = str(response)
-                data = None
+        if not brain:
+            return None, None
 
-            for chunk in self._chunk_text(text, chunk_size):
-                on_chunk(chunk)
+        full_text = ""
+        tool_call = None
+        used_native_streaming = False
 
-            storage.log_interaction("avva", text, data.get("exec_str") if isinstance(data, dict) else None)
-            return text, data
+        if hasattr(brain, 'execute_stream') and brain.supports_capability(BrainCapability.STREAMING):
+            try:
+                filtered_context = ContextFilter.filter_for_privacy_level(
+                    context,
+                    brain.get_privacy_level(),
+                    brain.config.context_filter_level
+                )
 
-        return None, None
+                for chunk_data in brain.execute_stream(command, filtered_context, {}):
+                    if "error" in chunk_data:
+                        break
+                    if chunk_data.get("done"):
+                        full_text = chunk_data.get("full_content", full_text)
+                        break
+                    chunk = chunk_data.get("chunk", "")
+                    if chunk:
+                        full_text += chunk
+                        on_chunk(chunk)
+                        used_native_streaming = True
+            except Exception as e:
+                print(f"⚠️ Streaming failed for {brain.name}, falling back: {e}")
+
+        if not used_native_streaming:
+            response = self._get_response(command)
+
+            if response:
+                if isinstance(response, dict):
+                    text = response.get("text") or ""
+                    data = response
+                else:
+                    text = str(response)
+                    data = None
+
+                for chunk in self._chunk_text(text, chunk_size):
+                    on_chunk(chunk)
+                full_text = text
+                tool_call = data.get("exec_str") if isinstance(data, dict) else None
+
+        storage.log_interaction("avva", full_text, tool_call)
+        return full_text, {"exec_str": tool_call} if tool_call else None
     
     def _get_response(self, command):
         """Internal helper to get response from tiers."""

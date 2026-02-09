@@ -161,7 +161,49 @@ class OpenAIBrain(BaseBrain):
                 
         except Exception as e:
             return self._build_error_response(f"OpenAI error: {str(e)}")
-    
+
+    def execute_stream(self, prompt: str, context: Dict[str, Any], constraints: Dict[str, Any]):
+        """
+        Execute streaming reasoning with OpenAI.
+
+        Yields chunks of the response as they become available.
+
+        Args:
+            prompt: User's input/query
+            context: Additional context
+            constraints: Execution constraints
+
+        Yields:
+            Dict with 'chunk' key containing the text chunk, or 'done' when complete
+        """
+        if not self.client:
+            self._init_client()
+
+        system_prompt = self._build_system_prompt(context, constraints)
+
+        try:
+            stream = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=self.temperature,
+                stream=True
+            )
+
+            full_content = ""
+            for chunk in stream:
+                if chunk.choices[0].delta.content:
+                    content = chunk.choices[0].delta.content
+                    full_content += content
+                    yield {"chunk": content}
+
+            yield {"done": True, "full_content": full_content}
+
+        except Exception as e:
+            yield {"error": str(e), "done": True}
+
     def estimate_cost(self, prompt: str) -> float:
         """Estimate cost for OpenAI."""
         # Rough token estimation (4 chars ≈ 1 token)

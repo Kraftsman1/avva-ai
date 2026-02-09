@@ -111,10 +111,39 @@
             </span>
             <!-- Content Bubble -->
             <div
-              class="p-4 rounded-[2.5rem] rounded-tl-none border border-white/[0.02] bubble-ava flex items-center gap-2">
+              class="p-4 rounded-[2.5rem] rounded-tl-none border border-white/[0.02] bubble-ava flex items-center gap-3">
               <div class="w-1.5 h-1.5 bg-ava-purple rounded-full animate-bounce [animation-delay:-0.3s]"></div>
               <div class="w-1.5 h-1.5 bg-ava-purple rounded-full animate-bounce [animation-delay:-0.15s]"></div>
               <div class="w-1.5 h-1.5 bg-ava-purple rounded-full animate-bounce"></div>
+              <!-- Stop Button -->
+              <button
+                @click="interrupt"
+                class="ml-2 px-4 py-1.5 bg-red-500/20 border border-red-500/40 rounded-full text-[10px] font-black text-red-400 hover:bg-red-500/30 transition-colors tracking-[0.15em]">
+                STOP
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Speaking Indicator with Stop -->
+      <div v-if="isSpeaking" class="flex flex-col items-start animate-in fade-in duration-300 mt-12 pl-10">
+        <div class="max-w-[88%] lg:max-w-[80%] flex items-start gap-6">
+          <div
+            class="w-12 h-12 rounded-2xl bg-black border border-ava-purple/20 flex items-center justify-center shadow-[0_0_20px_rgba(124,58,237,0.1)] shrink-0 mt-1">
+            <Bot :size="24" class="text-ava-purple" />
+          </div>
+          <div class="flex flex-col items-start">
+            <span class="text-[9px] font-black tracking-[0.25em] uppercase mb-3 px-1 text-ava-purple/50">
+              AVA_RESPONSE
+            </span>
+            <div class="p-4 rounded-[2.5rem] rounded-tl-none border border-white/[0.02] bubble-ava flex items-center gap-3">
+              <span class="text-[14px] font-medium text-white/70 italic">Speaking...</span>
+              <button
+                @click="interrupt"
+                class="ml-2 px-4 py-1.5 bg-red-500/20 border border-red-500/40 rounded-full text-[10px] font-black text-red-400 hover:bg-red-500/30 transition-colors tracking-[0.15em]">
+                STOP
+              </button>
             </div>
           </div>
         </div>
@@ -131,6 +160,17 @@ const { $ava } = useNuxtApp()
 const scrollContainer = ref(null)
 
 const isThinking = computed(() => $ava?.state?.assistantState === 'thinking')
+const isSpeaking = computed(() => $ava?.state?.assistantState === 'speaking')
+
+const interrupt = () => {
+  if ($ava?.ws?.readyState === WebSocket.OPEN) {
+    $ava.ws.send(JSON.stringify({
+      id: crypto.randomUUID(),
+      type: 'assistant.interrupt',
+      payload: {}
+    }))
+  }
+}
 
 // Auto-scroll when thinking state changes
 watch(isThinking, (newVal) => {
