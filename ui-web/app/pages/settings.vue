@@ -31,14 +31,22 @@
             <div class="flex gap-4">
                 <Button variant="outline"
                     class="border-white/5 bg-white/[0.02] text-white/40 hover:bg-white/[0.05] hover:text-white gap-3 font-black text-[10px] tracking-[0.2em] uppercase px-8 h-14 rounded-2xl group transition-all"
-                    @click="refreshAll">
+                    @click="refreshAll"
+                    :disabled="isSaving">
                     <RefreshCw class="w-4 h-4 group-hover:rotate-180 transition-transform duration-700" />
                     RECALIBRATE
                 </Button>
             </div>
         </div>
 
-        <Tabs v-model="activeTab" class="w-full">
+        <div class="mb-8 flex items-center justify-between">
+            <div v-if="isSaving" class="flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.2em] text-ava-purple/70">
+                <div class="w-2 h-2 rounded-full bg-ava-purple animate-pulse"></div>
+                Saving changes...
+            </div>
+        </div>
+
+        <Tabs v-model="activeTab" class="w-full" :class="{ 'opacity-70 pointer-events-none': isSaving }">
             <div
                 class="flex items-center justify-between mb-12 border-b border-white/[0.03] pb-1 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
                 <TabsList class="bg-transparent p-0 gap-10 h-auto">
@@ -565,6 +573,8 @@ const rulesOnly = computed(() => $ava?.state?.rulesOnly)
 const autoSelection = computed(() => $ava?.state?.autoSelection)
 const appSettings = computed(() => $ava?.state?.appSettings || {})
 const errorLog = computed(() => $ava?.state?.errorLog || [])
+const pendingOps = computed(() => $ava?.state?.pendingOps || [])
+const isSaving = computed(() => pendingOps.value.length > 0)
 
 // Computed Helpers
 const activeBrain = computed(() => brains.value.find(b => b.id === activeBrainId.value))

@@ -1,6 +1,7 @@
 <template>
   <div class="h-screen w-screen flex bg-ava-bg text-ava-text overflow-hidden">
     <ErrorToast />
+    <SuccessToast />
     <!-- Sidebar -->
     <AppSidebar class="w-[280px] h-full flex-shrink-0" />
 

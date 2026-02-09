@@ -112,6 +112,29 @@ class Assistant:
             else:
                 time.sleep(0.5)
 
+    def capture_voice_command(self, request_id=None):
+        """Capture a single voice command on demand."""
+        try:
+            self.update_state("listening")
+            command = listen()
+            if command:
+                self.process_command(command, request_id, True)
+            else:
+                self.update_state("idle")
+        except Exception as e:
+            self._emit(
+                "core.error",
+                {
+                    "code": "VOICE_CAPTURE_ERROR",
+                    "message": str(e),
+                    "severity": "error",
+                    "retry_allowed": True,
+                    "context": {"source": "voice_capture"},
+                    "request_id": request_id,
+                },
+            )
+            self.update_state("idle")
+
     def start_voice_thread(self):
         thread = threading.Thread(target=self.voice_loop, daemon=True)
         thread.start()

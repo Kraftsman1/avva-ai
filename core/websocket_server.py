@@ -119,6 +119,13 @@ class WebSocketServer:
                         assistant.update_state("idle")
                         assistant.listening_enabled = True
 
+                    elif event_type == "assistant.voice_start":
+                        threading.Thread(
+                            target=assistant.capture_voice_command,
+                            args=(message_id,),
+                            daemon=True
+                        ).start()
+
                     elif event_type == "config.get":
                         from core.config import config
                         await websocket.send(json.dumps(self._build_message(
