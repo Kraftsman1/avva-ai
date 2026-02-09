@@ -35,17 +35,18 @@ class WebSocketServer:
         print(f"🔌 Client disconnected: {websocket.remote_address}")
 
     async def broadcast(self, message_dict):
-        if not self.clients:
-            return
-            
+        """Sends a message to all connected clients."""
         import json
         message = json.dumps(message_dict)
-        # Create a copy of clients to avoid issues if set changes during iteration
-        await asyncio.gather(*[client.send(message) for client in self.clients])
+        if not self.clients:
+            return
+        try:
+            await asyncio.gather(*[client.send(message) for client in self.clients])
+        except Exception as e:
+            print(f"Broadcast error: {e}")
 
     def assistant_callback(self, event_type, data):
         """Callback from assistant to broadcast events."""
-        print(f"📡 WS callback: {event_type}")
         if self.loop and self.clients:
             message_id = data.get("request_id")
             payload = dict(data)
@@ -56,7 +57,6 @@ class WebSocketServer:
                 "payload": payload,
                 "timestamp": datetime.now().isoformat()
             }
-            print(f"📡 Broadcasting: {event_type} to {len(self.clients)} clients")
             asyncio.run_coroutine_threadsafe(
                 self.broadcast(message),
                 self.loop
@@ -109,7 +109,6 @@ class WebSocketServer:
                     if event_type == "assistant.command":
                         command = payload.get("command")
                         if command:
-                            print(f"🔤 Received command: {command} (id: {message_id})")
                             # Forward command to assistant in a separate thread
                             threading.Thread(
                                 target=assistant.process_command,
@@ -383,7 +382,7 @@ class WebSocketServer:
     async def _main(self):
         # Start stats loop
         asyncio.create_task(self._broadcast_stats())
-        
+
         async with websockets.serve(self.handler, self.host, self.port):
             print(f"📡 WebSocket Server listening on ws://{self.host}:{self.port}")
             # Register with assistant

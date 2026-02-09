@@ -1,5 +1,6 @@
 from pygame import mixer
 import os
+import sys
 import requests
 import threading
 from core.config import config
@@ -36,12 +37,10 @@ def speak(text, interrupt_callback=None):
             _speak_gtts(text, filename)
 
         _speaking = True
-        import threading
-        playback_thread = threading.Thread(target=_play_audio, args=(filename, interrupt_callback), daemon=True)
-        playback_thread.start()
+        _playback_thread = threading.Thread(target=_play_audio, args=(filename, interrupt_callback), daemon=True)
+        _playback_thread.start()
     except Exception as e:
         print(f"TTS Error ({engine}): {e}")
-    finally:
         _speaking = False
 
 def speak_interrupt():
@@ -75,6 +74,8 @@ def _play_audio(filename, interrupt_callback=None):
         mixer.quit()
     except Exception as e:
         print(f"Playback Error: {e}")
+    finally:
+        _speaking = False
 
 def _speak_gtts(text, filename):
     from gtts import gTTS

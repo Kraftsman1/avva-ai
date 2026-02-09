@@ -44,8 +44,6 @@ class Assistant:
         """Processes a string command (text or recognized speech)."""
         from core.memory import memory
 
-        print(f"🎯 Processing command: {command[:50]}... (id: {request_id})")
-
         self._interrupt_event.clear()
         self._current_request_id = request_id
 
@@ -76,7 +74,6 @@ class Assistant:
                 text, data = brain.process_stream(command, on_chunk)
 
                 if streaming_complete:
-                    print("⏹️ Streaming interrupted")
                     self.update_state("idle")
                     return
 
@@ -86,13 +83,11 @@ class Assistant:
                 )
 
                 if full_text:
-                    print(f"✅ Streaming complete, {len(full_text)} chars")
                     memory.add_assistant_message(full_text)
                     self._emit("assistant.response", {"text": full_text, "data": data or {}, "request_id": request_id})
                     self.update_state("speaking")
                     speak(full_text)
                 else:
-                    print("⚠️ No text from streaming")
                     self.update_state("idle")
             else:
                 response = brain.process(command)
@@ -106,7 +101,6 @@ class Assistant:
                         data = None
 
                     if text:
-                        print(f"✅ Response: {text[:100]}...")
                         memory.add_assistant_message(text)
                     self._emit("assistant.response", {"text": text, "data": data, "request_id": request_id})
                     if not self._interrupt_event.is_set():
@@ -114,7 +108,6 @@ class Assistant:
                         speak(text)
         except Exception as e:
             import traceback
-            print(f"❌ Error processing command: {e}")
             traceback.print_exc()
             self._emit(
                 "core.error",

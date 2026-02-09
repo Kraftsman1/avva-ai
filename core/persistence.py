@@ -389,6 +389,7 @@ class Persistence:
     def get_session(self, session_id):
         """Get a conversation session by ID."""
         conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         try:
             cursor.execute('''
@@ -397,10 +398,11 @@ class Persistence:
             ''', (session_id,))
             row = cursor.fetchone()
             if row:
+                from datetime import datetime
                 return {
                     'id': row[0],
-                    'created_at': row[1],
-                    'updated_at': row[2],
+                    'created_at': datetime.fromisoformat(row[1]) if row[1] else None,
+                    'updated_at': datetime.fromisoformat(row[2]) if row[2] else None,
                     'title': row[3],
                     'brain_id': row[4]
                 }
@@ -445,10 +447,11 @@ class Persistence:
                 LIMIT ? OFFSET ?
             ''', (limit, offset))
             rows = cursor.fetchall()
+            from datetime import datetime
             return [{
                 'id': row[0],
-                'created_at': row[1],
-                'updated_at': row[2],
+                'created_at': datetime.fromisoformat(row[1]) if row[1] else None,
+                'updated_at': datetime.fromisoformat(row[2]) if row[2] else None,
                 'title': row[3],
                 'brain_id': row[4]
             } for row in rows]
@@ -470,10 +473,11 @@ class Persistence:
                 LIMIT ?
             ''', (search_term, limit))
             rows = cursor.fetchall()
+            from datetime import datetime
             return [{
                 'session_id': row[0],
                 'title': row[1],
-                'updated_at': row[2]
+                'updated_at': datetime.fromisoformat(row[2]) if row[2] else None
             } for row in rows]
         finally:
             conn.close()

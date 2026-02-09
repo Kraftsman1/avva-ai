@@ -125,7 +125,6 @@ export default defineNuxtPlugin(() => {
                     state.assistantState = payload.state
                     break
                 case 'assistant.response':
-                    console.log('💬 assistant.response received:', payload.text?.slice(0, 50))
                     if (id && pendingRequests.has(id)) {
                         clearTimeout(pendingRequests.get(id))
                         pendingRequests.delete(id)
@@ -135,7 +134,6 @@ export default defineNuxtPlugin(() => {
                         state.messages[streamIdx].text = payload.text
                         state.messages[streamIdx].data = payload.data
                         delete (state.messages[streamIdx] as any).streamId
-                        console.log('✅ Updated existing stream message')
                     } else {
                         state.messages.push({
                             id: Date.now(),
@@ -143,7 +141,6 @@ export default defineNuxtPlugin(() => {
                             sender: 'avva',
                             data: payload.data
                         })
-                        console.log('💬 Added new response message')
                     }
                     break
                 case 'assistant.command':
@@ -154,13 +151,8 @@ export default defineNuxtPlugin(() => {
                     })
                     break
                 case 'assistant.stream': {
-                    if (!id) {
-                        console.log('⚠️ assistant.stream missing id')
-                        break
-                    }
-                    console.log('📝 Stream chunk received')
+                    if (!id) break
                     if (payload.done) {
-                        console.log('✅ Stream complete')
                         if (pendingRequests.has(id)) {
                             clearTimeout(pendingRequests.get(id))
                             pendingRequests.delete(id)
@@ -177,7 +169,6 @@ export default defineNuxtPlugin(() => {
                     const streamIdx = state.messages.findIndex(m => (m as any).streamId === id)
                     if (streamIdx >= 0) {
                         state.messages[streamIdx].text += chunk
-                        console.log(`📝 Updated stream message: ${state.messages[streamIdx].text.length} chars`)
                     } else {
                         state.messages.push({
                             id: Date.now(),
@@ -185,7 +176,6 @@ export default defineNuxtPlugin(() => {
                             sender: 'avva',
                             streamId: id
                         })
-                        console.log(`📝 New stream message: ${chunk.length} chars`)
                     }
                     break
                 }
@@ -327,18 +317,14 @@ export default defineNuxtPlugin(() => {
     }
 
     const sendCommand = (command: string) => {
-        console.log('📤 Sending command:', command.slice(0, 50))
         if (ws && ws.readyState === WebSocket.OPEN) {
             const requestId = generateId()
-            console.log('📤 Request ID:', requestId)
             ws.send(JSON.stringify({
                 id: requestId,
                 type: 'assistant.command',
                 payload: { command }
             }))
             registerRequestTimeout(requestId, `assistant.command "${command}"`)
-        } else {
-            console.error('❌ WebSocket not connected! readyState:', ws?.readyState)
         }
     }
 

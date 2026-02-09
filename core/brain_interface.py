@@ -165,8 +165,9 @@ class Brain(ABC):
             Dict with 'chunk' key for partial responses, 'done' key when complete.
             Subclasses can yield {'error': str, 'done': True} on failure.
         """
+        # Default implementation - subclasses should override this
+        yield {'error': 'Streaming not implemented', 'done': True}
         return
-        yield
     
     def update_config(self, config_data: Dict[str, Any]) -> bool:
         """
