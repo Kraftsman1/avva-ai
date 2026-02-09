@@ -7,6 +7,18 @@ import uuid
 from datetime import datetime
 from core.assistant import assistant
 
+
+def serialize_datetime(obj):
+    """Helper to convert datetime objects to ISO format strings for JSON serialization."""
+    if isinstance(obj, dict):
+        return {k: serialize_datetime(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [serialize_datetime(item) for item in obj]
+    elif hasattr(obj, 'isoformat'):
+        return obj.isoformat()
+    return obj
+
+
 class WebSocketServer:
     """
     WebSocket Server bridge for AVA.
@@ -243,12 +255,11 @@ class WebSocketServer:
 
                     elif event_type == "conversation.list":
                         from core.memory import memory
-                        from core.persistence import storage
                         limit = payload.get("limit", 20)
                         sessions = memory.list_recent_sessions(limit=limit)
                         await websocket.send(json.dumps(self._build_message(
                             "conversation.list",
-                            {"sessions": sessions},
+                            {"sessions": serialize_datetime(sessions)},
                             message_id
                         )))
 
@@ -262,9 +273,10 @@ class WebSocketServer:
                         else:
                             messages = memory.get_session_history()
                             session = storage.get_session(memory.current_session_id) if memory.current_session_id else None
+
                         await websocket.send(json.dumps(self._build_message(
                             "conversation.messages",
-                            {"session": session, "messages": messages},
+                            {"session": serialize_datetime(session), "messages": serialize_datetime(messages)},
                             message_id
                         )))
 
@@ -283,6 +295,7 @@ class WebSocketServer:
                         from core.memory import memory
                         query = payload.get("query", "")
                         results = memory.recall(query)
+                        # Note: recall() already converts datetime to string in its implementation
                         await websocket.send(json.dumps(self._build_message(
                             "conversation.search_results",
                             {"query": query, "results": results},
@@ -292,10 +305,11 @@ class WebSocketServer:
                     elif event_type == "conversation.start":
                         from core.memory import memory
                         title = payload.get("title")
-                        session_id = memory.start_session(title=title)
+                        brain_id = payload.get("brain_id")
+                        session_id = memory.start_session(title=title, brain_id=brain_id)
                         await websocket.send(json.dumps(self._build_message(
                             "conversation.started",
-                            {"session_id": session_id},
+                            {"session_id": session_id, "title": title or "New Conversation"},
                             message_id
                         )))
 

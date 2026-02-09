@@ -36,6 +36,7 @@ export default defineNuxtPlugin(() => {
         pendingOps: [] as { id: string; label: string }[],
         conversations: [] as any[],
         currentConversationId: null as string | null,
+        currentConversationTitle: 'New Conversation' as string,
         conversationMessages: [] as any[]
     })
 
@@ -272,10 +273,30 @@ export default defineNuxtPlugin(() => {
                     break
                 case 'conversation.list':
                     state.conversations = payload.sessions || []
+                    // Update current title if we have it
+                    if (state.currentConversationId) {
+                        const currentSession = state.conversations.find((s: any) => s.id === state.currentConversationId)
+                        if (currentSession) {
+                            state.currentConversationTitle = currentSession.title || 'New Conversation'
+                        }
+                    }
                     break
                 case 'conversation.messages':
                     state.currentConversationId = payload.session?.id || null
+                    state.currentConversationTitle = payload.session?.title || 'New Conversation'
                     state.conversationMessages = payload.messages || []
+                    // Load messages into the chat
+                    state.messages = payload.messages.map((m: any) => ({
+                        id: m.id,
+                        text: m.content,
+                        sender: m.role === 'user' ? 'user' : 'avva',
+                        data: m.data || {}
+                    }))
+                    break
+                case 'conversation.started':
+                    state.currentConversationId = payload.session_id || null
+                    state.currentConversationTitle = 'New Conversation'
+                    fetchConversations()
                     break
                 case 'conversation.search_results':
                     break
@@ -477,6 +498,9 @@ export default defineNuxtPlugin(() => {
 
     const startConversation = (title?: string) => {
         if (ws && ws.readyState === WebSocket.OPEN) {
+            // Clear current messages
+            state.messages = []
+            state.currentConversationId = null
             ws.send(JSON.stringify({
                 id: generateId(),
                 type: 'conversation.start',

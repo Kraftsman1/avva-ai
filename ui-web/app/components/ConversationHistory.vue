@@ -39,7 +39,7 @@
             v-for="session in conversations"
             :key="session.id"
             @click="selectConversation(session.id)"
-            class="p-4 rounded-xl cursor-pointer transition-all border border-transparent"
+            class="group p-4 rounded-xl cursor-pointer transition-all border border-transparent"
             :class="currentId === session.id ? 'bg-ava-purple/10 border-ava-purple/30' : 'hover:bg-white/[0.02] hover:border-white/[0.05]'">
             <div class="flex items-start justify-between mb-2">
               <span class="text-[11px] font-medium text-white/80 truncate pr-2">
@@ -119,6 +119,7 @@ const formatDate = (dateStr) => {
 const selectConversation = (id) => {
   $ava?.loadConversation?.(id)
   emit('select', id)
+  emit('close')
 }
 
 const deleteConv = (id) => {
@@ -130,6 +131,7 @@ const deleteConv = (id) => {
 const startNew = () => {
   $ava?.startConversation?.('New Conversation')
   emit('select', null)
+  emit('close')
 }
 
 let searchTimeout = null

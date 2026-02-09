@@ -7,7 +7,7 @@
           class="px-8 py-3 bg-white/[0.02] border border-white/[0.04] rounded-2xl flex items-center gap-4 shadow-2xl backdrop-blur-md">
           <div class="w-1.5 h-1.5 bg-ava-purple rounded-full shadow-[0_0_10px_#7c3aed]"></div>
           <span class="text-[10px] font-black text-white/30 tracking-[0.3em] uppercase">
-            ACTIVE_NEURAL_LINK: {{ currentSessionLabel }}
+            {{ currentSessionLabel }}
           </span>
         </div>
       </div>
@@ -161,6 +161,10 @@ const scrollContainer = ref(null)
 
 const isThinking = computed(() => $ava?.state?.assistantState === 'thinking')
 const isSpeaking = computed(() => $ava?.state?.assistantState === 'speaking')
+const currentSessionLabel = computed(() => {
+  const title = $ava?.state?.currentConversationTitle || 'New Conversation'
+  return title.toUpperCase().replace(/[^A-Z0-9\s]/g, '').replace(/\s+/g, '_')
+})
 
 const interrupt = () => {
   if ($ava?.ws?.readyState === WebSocket.OPEN) {
@@ -186,8 +190,6 @@ watch(isThinking, (newVal) => {
     })
   }
 })
-
-const currentSessionLabel = 'NEURAL_INTEGRATION_LAYER'
 
 const hasCode = (text) => text.includes('```')
 const getCode = (text) => text.split('```')[1]?.split('\n').slice(1).join('\n')

@@ -423,11 +423,12 @@ class Persistence:
                 LIMIT ?
             ''', (session_id, limit))
             rows = cursor.fetchall()
+            from datetime import datetime
             return [{
                 'id': row[0],
                 'role': row[1],
                 'content': row[2],
-                'timestamp': row[3],
+                'timestamp': datetime.fromisoformat(row[3]) if row[3] else None,
                 'brain_id': row[4],
                 'intent': row[5],
                 'tool_call': row[6]
@@ -479,6 +480,25 @@ class Persistence:
                 'title': row[1],
                 'updated_at': datetime.fromisoformat(row[2]) if row[2] else None
             } for row in rows]
+        finally:
+            conn.close()
+
+    def update_session_title(self, session_id, title):
+        """Update a session's title."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        try:
+            now = datetime.datetime.now()
+            cursor.execute('''
+                UPDATE conversation_sessions
+                SET title = ?, updated_at = ?
+                WHERE id = ?
+            ''', (title, now, session_id))
+            conn.commit()
+            return True
+        except Exception as e:
+            print(f"Error updating session title: {e}")
+            return False
         finally:
             conn.close()
 

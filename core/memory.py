@@ -50,6 +50,9 @@ class Memory:
     def add_user_message(self, content):
         """Add a user message to memory."""
         self.add_message(role="user", content=content)
+        # Auto-generate title from first user message if still "New Conversation"
+        if self.session_title == "New Conversation" and content:
+            self._update_session_title(content)
 
     def add_assistant_message(self, content, brain_id=None, intent=None, tool_call=None):
         """Add an assistant message to memory."""
@@ -174,6 +177,21 @@ class Memory:
             'total_sessions': len(sessions),
             'current_session': self.current_session_id
         }
+
+    def _update_session_title(self, first_message):
+        """Generate a title from the first user message."""
+        # Take first 50 chars or up to first sentence
+        title = first_message[:50].strip()
+        if '?' in title:
+            title = title.split('?')[0] + '?'
+        elif '.' in title:
+            title = title.split('.')[0] + '.'
+        elif len(first_message) > 50:
+            title = title + '...'
+
+        self.session_title = title
+        # Update in database
+        storage.update_session_title(self.current_session_id, title)
 
 
 memory = Memory()
