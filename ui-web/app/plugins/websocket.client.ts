@@ -6,6 +6,16 @@ export default defineNuxtPlugin(() => {
         data?: any
     }
 
+    interface CoreError {
+        id: string
+        code: string
+        message: string
+        severity: 'error' | 'warning' | 'info'
+        retry_allowed: boolean
+        context?: Record<string, any>
+        timestamp: string
+    }
+
     const state = reactive({
         assistantState: 'idle',
         messages: [] as Message[],
@@ -19,11 +29,74 @@ export default defineNuxtPlugin(() => {
         autoSelection: true,
         appSettings: {} as any,
         activeModel: 'Llama-3-8B-Instruct',
-        isConnected: false
+        isConnected: false,
+        errorLog: [] as CoreError[],
+        errorToasts: [] as CoreError[],
+        successToasts: [] as { id: string; message: string }[],
+        pendingOps: [] as { id: string; label: string }[]
     })
 
     let ws: WebSocket | null = null
     let reconnectTimer: any = null
+    const pendingRequests = new Map<string, ReturnType<typeof setTimeout>>()
+    const streamingMessages = new Map<string, number>()
+    const pendingOperations = new Map<string, { label: string }>()
+
+    const generateId = () => {
+        if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+            return crypto.randomUUID()
+        }
+        return `${Date.now()}-${Math.random().toString(16).slice(2)}`
+    }
+
+    const registerRequestTimeout = (requestId: string, context: string) => {
+        const timer = setTimeout(() => {
+            pendingRequests.delete(requestId)
+            pendingOperations.delete(requestId)
+            state.pendingOps = Array.from(pendingOperations.entries()).map(([id, op]) => ({
+                id,
+                label: op.label
+            }))
+            state.messages.push({
+                id: Date.now(),
+                text: `Request timed out after 30s. (${context})`,
+                sender: 'avva',
+                data: { error: true, requestId }
+            })
+        }, 30000)
+        pendingRequests.set(requestId, timer)
+    }
+
+    const pushErrorLog = (entry: CoreError) => {
+        state.errorLog = [entry, ...state.errorLog].slice(0, 50)
+    }
+
+    const addErrorToast = (entry: CoreError) => {
+        state.errorToasts = [...state.errorToasts, entry]
+        setTimeout(() => {
+            state.errorToasts = state.errorToasts.filter((toast) => toast.id !== entry.id)
+        }, 8000)
+    }
+
+    const addSuccessToast = (message: string) => {
+        const id = generateId()
+        state.successToasts = [...state.successToasts, { id, message }]
+        setTimeout(() => {
+            state.successToasts = state.successToasts.filter((toast) => toast.id !== id)
+        }, 5000)
+    }
+
+    const dismissErrorToast = (id: string) => {
+        state.errorToasts = state.errorToasts.filter((toast) => toast.id !== id)
+    }
+
+    const retryError = (entry: CoreError) => {
+        const command = entry.context?.command
+        if (command) {
+            sendCommand(command)
+        }
+        dismissErrorToast(entry.id)
+    }
 
     const connect = () => {
         if (typeof window === 'undefined') return
@@ -42,13 +115,17 @@ export default defineNuxtPlugin(() => {
         }
 
         ws.onmessage = (event: MessageEvent) => {
-            const { type, payload } = JSON.parse(event.data)
+            const { type, payload, id, timestamp } = JSON.parse(event.data)
 
             switch (type) {
                 case 'assistant.state':
                     state.assistantState = payload.state
                     break
                 case 'assistant.response':
+                    if (id && pendingRequests.has(id)) {
+                        clearTimeout(pendingRequests.get(id))
+                        pendingRequests.delete(id)
+                    }
                     state.messages.push({
                         id: Date.now(),
                         text: payload.text,
@@ -63,6 +140,38 @@ export default defineNuxtPlugin(() => {
                         sender: 'user'
                     })
                     break
+                case 'assistant.stream': {
+                    if (!id) break
+                    if (payload.done) {
+                        if (pendingRequests.has(id)) {
+                            clearTimeout(pendingRequests.get(id))
+                            pendingRequests.delete(id)
+                        }
+                        pendingOperations.delete(id)
+                        state.pendingOps = Array.from(pendingOperations.entries()).map(([opId, op]) => ({
+                            id: opId,
+                            label: op.label
+                        }))
+                        streamingMessages.delete(id)
+                        break
+                    }
+                    const chunk = payload.chunk || ''
+                    if (!streamingMessages.has(id)) {
+                        state.messages.push({
+                            id: Date.now(),
+                            text: chunk,
+                            sender: 'avva'
+                        })
+                        streamingMessages.set(id, state.messages.length - 1)
+                    } else {
+                        const index = streamingMessages.get(id)
+                        const message = state.messages[index]
+                        if (message) {
+                            message.text += chunk
+                        }
+                    }
+                    break
+                }
                 case 'system.stats':
                     state.systemStats = payload
                     break
@@ -74,6 +183,14 @@ export default defineNuxtPlugin(() => {
                     break
                 case 'config.updated':
                     state.config = { ...state.config, ...payload }
+                    if (id && pendingOperations.has(id)) {
+                        pendingOperations.delete(id)
+                        state.pendingOps = Array.from(pendingOperations.entries()).map(([opId, op]) => ({
+                            id: opId,
+                            label: op.label
+                        }))
+                        addSuccessToast('Configuration updated.')
+                    }
                     break
                 case 'brains.data':
                     state.brains = payload.brains
@@ -98,6 +215,14 @@ export default defineNuxtPlugin(() => {
                 case 'brains.updated':
                     state.activeBrainId = payload.active_id
                     state.fallbackBrainId = payload.fallback_id
+                    if (id && pendingOperations.has(id)) {
+                        pendingOperations.delete(id)
+                        state.pendingOps = Array.from(pendingOperations.entries()).map(([opId, op]) => ({
+                            id: opId,
+                            label: op.label
+                        }))
+                        addSuccessToast('Brain selection updated.')
+                    }
 
                     // Sync active model name
                     if (state.activeBrainId) {
@@ -115,18 +240,57 @@ export default defineNuxtPlugin(() => {
                 case 'brains.mode_updated':
                     state.rulesOnly = payload.rules_only
                     state.autoSelection = payload.auto_selection
+                    if (id && pendingOperations.has(id)) {
+                        pendingOperations.delete(id)
+                        state.pendingOps = Array.from(pendingOperations.entries()).map(([opId, op]) => ({
+                            id: opId,
+                            label: op.label
+                        }))
+                        addSuccessToast('Brain mode updated.')
+                    }
                     break
                 case 'settings.data':
                     state.appSettings = payload
                     break
                 case 'settings.updated':
                     state.appSettings = { ...state.appSettings, ...payload }
+                    if (id && pendingOperations.has(id)) {
+                        pendingOperations.delete(id)
+                        state.pendingOps = Array.from(pendingOperations.entries()).map(([opId, op]) => ({
+                            id: opId,
+                            label: op.label
+                        }))
+                        addSuccessToast('Settings saved.')
+                    }
                     break
+                case 'core.error': {
+                    const errorEntry: CoreError = {
+                        id: id || generateId(),
+                        code: payload.code,
+                        message: payload.message,
+                        severity: payload.severity || 'error',
+                        retry_allowed: Boolean(payload.retry_allowed),
+                        context: payload.context || {},
+                        timestamp: timestamp || new Date().toISOString()
+                    }
+                    pushErrorLog(errorEntry)
+                    addErrorToast(errorEntry)
+                    if (id && pendingOperations.has(id)) {
+                        pendingOperations.delete(id)
+                        state.pendingOps = Array.from(pendingOperations.entries()).map(([opId, op]) => ({
+                            id: opId,
+                            label: op.label
+                        }))
+                    }
+                    break
+                }
             }
         }
 
         ws.onclose = () => {
             state.isConnected = false
+            pendingRequests.forEach((timer) => clearTimeout(timer))
+            pendingRequests.clear()
             console.log('❌ Disconnected from AVA Core. Retrying in 3s...')
             reconnectTimer = setTimeout(connect, 3000)
         }
@@ -138,72 +302,118 @@ export default defineNuxtPlugin(() => {
 
     const sendCommand = (command: string) => {
         if (ws && ws.readyState === WebSocket.OPEN) {
+            const requestId = generateId()
             ws.send(JSON.stringify({
+                id: requestId,
                 type: 'assistant.command',
                 payload: { command }
             }))
+            registerRequestTimeout(requestId, `assistant.command "${command}"`)
         }
     }
 
     const fetchConfig = () => {
         if (ws && ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ type: 'config.get' }))
+            ws.send(JSON.stringify({ id: generateId(), type: 'config.get' }))
         }
     }
 
     const updateConfig = (key: string, value: any) => {
         if (ws && ws.readyState === WebSocket.OPEN) {
+            const requestId = generateId()
             ws.send(JSON.stringify({
+                id: requestId,
                 type: 'config.update',
                 payload: { key, value }
+            }))
+            pendingOperations.set(requestId, { label: 'Saving configuration' })
+            state.pendingOps = Array.from(pendingOperations.entries()).map(([id, op]) => ({
+                id,
+                label: op.label
             }))
         }
     }
 
     const fetchBrains = () => {
         if (ws && ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ type: 'brains.list' }))
+            ws.send(JSON.stringify({ id: generateId(), type: 'brains.list' }))
         }
     }
 
     const selectBrain = (target: 'active' | 'fallback', brainId: string) => {
         if (ws && ws.readyState === WebSocket.OPEN) {
+            const requestId = generateId()
             ws.send(JSON.stringify({
+                id: requestId,
                 type: 'brains.select',
                 payload: { target, brain_id: brainId }
+            }))
+            pendingOperations.set(requestId, { label: 'Updating brain selection' })
+            state.pendingOps = Array.from(pendingOperations.entries()).map(([id, op]) => ({
+                id,
+                label: op.label
             }))
         }
     }
 
     const toggleBrainMode = (mode: 'rules_only' | 'auto_selection', enabled: boolean) => {
         if (ws && ws.readyState === WebSocket.OPEN) {
+            const requestId = generateId()
             ws.send(JSON.stringify({
+                id: requestId,
                 type: 'brains.toggle_mode',
                 payload: { mode, enabled }
+            }))
+            pendingOperations.set(requestId, { label: 'Updating brain mode' })
+            state.pendingOps = Array.from(pendingOperations.entries()).map(([id, op]) => ({
+                id,
+                label: op.label
             }))
         }
     }
 
     const updateBrainConfig = (brainId: string, config: any) => {
         if (ws && ws.readyState === WebSocket.OPEN) {
+            const requestId = generateId()
             ws.send(JSON.stringify({
+                id: requestId,
                 type: 'brains.update_config',
                 payload: { brain_id: brainId, config }
+            }))
+            pendingOperations.set(requestId, { label: 'Saving brain configuration' })
+            state.pendingOps = Array.from(pendingOperations.entries()).map(([id, op]) => ({
+                id,
+                label: op.label
             }))
         }
     }
 
     const fetchSettings = () => {
         if (ws && ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ type: 'settings.get' }))
+            ws.send(JSON.stringify({ id: generateId(), type: 'settings.get' }))
+        }
+    }
+
+    const startVoiceCapture = () => {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            const requestId = generateId()
+            ws.send(JSON.stringify({ id: requestId, type: 'assistant.voice_start' }))
+            registerRequestTimeout(requestId, 'assistant.voice_start')
         }
     }
 
     const updateSettings = (settings: any) => {
         if (ws && ws.readyState === WebSocket.OPEN) {
+            const requestId = generateId()
             ws.send(JSON.stringify({
+                id: requestId,
                 type: 'settings.update',
                 payload: { settings }
+            }))
+            pendingOperations.set(requestId, { label: 'Saving settings' })
+            state.pendingOps = Array.from(pendingOperations.entries()).map(([id, op]) => ({
+                id,
+                label: op.label
             }))
         }
     }
@@ -225,7 +435,10 @@ export default defineNuxtPlugin(() => {
                 toggleBrainMode,
                 updateBrainConfig,
                 fetchSettings,
-                updateSettings
+                updateSettings,
+                startVoiceCapture,
+                dismissErrorToast,
+                retryError
             }
         }
     }

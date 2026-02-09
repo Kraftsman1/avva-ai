@@ -5,10 +5,9 @@ import io
 import scipy.io.wavfile as wav
 from core.config import config
 
-def listen():
+def listen(duration=5):
     """Listens for microphone input using sounddevice and returns recognized text."""
     fs = 44100  # Sample rate
-    duration = 5  # Recording duration in seconds
     
     try:
         print(f"Listening for {duration} seconds...")

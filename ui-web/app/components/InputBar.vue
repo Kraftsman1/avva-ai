@@ -26,6 +26,18 @@
           CMD + L
         </div>
 
+        <Button
+          variant="ghost"
+          size="icon"
+          class="h-11 w-11 rounded-2xl transition-all border border-transparent"
+          :class="isRecording ? 'text-ava-purple border-ava-purple/40 bg-ava-purple/10' : 'text-white/20 hover:text-white hover:bg-white/5'"
+          @pointerdown="startVoice"
+          @pointerup="stopVoice"
+          @pointerleave="stopVoice"
+        >
+          <Mic :size="20" stroke-width="2.5" />
+        </Button>
+
         <Button @click="handleSend" size="icon"
           class="h-13 w-13 bg-gradient-to-br from-ava-purple to-[#9333ea] hover:scale-105 text-white rounded-[1.5rem] transition-all active:scale-95 shadow-[0_10px_30px_rgba(124,58,237,0.3)] disabled:opacity-5 disabled:scale-100"
           :disabled="!input.trim()">
@@ -51,10 +63,12 @@
 </template>
 
 <script setup>
-import { Terminal, Search, Maximize2, ArrowUp, Zap, Shield, Database } from 'lucide-vue-next'
+import { Terminal, Search, Maximize2, ArrowUp, Zap, Shield, Database, Mic } from 'lucide-vue-next'
 
 const { $ava } = useNuxtApp()
 const input = ref('')
+const isRecording = ref(false)
+const assistantState = computed(() => $ava?.state?.assistantState)
 
 const badges = [
   { icon: Zap, label: 'K_LATENCY: 12ms' },
@@ -62,10 +76,26 @@ const badges = [
   { icon: Database, label: 'RAG_CORE: STABLE' },
 ]
 
+watch(assistantState, (state) => {
+  if (state !== 'listening') {
+    isRecording.value = false
+  }
+})
+
 const handleSend = () => {
   if (input.value.trim()) {
     $ava?.sendCommand?.(input.value)
     input.value = ''
   }
+}
+
+const startVoice = () => {
+  if (isRecording.value) return
+  isRecording.value = true
+  $ava?.startVoiceCapture?.()
+}
+
+const stopVoice = () => {
+  isRecording.value = false
 }
 </script>
