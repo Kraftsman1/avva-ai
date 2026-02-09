@@ -1,28 +1,42 @@
 <template>
-    <div class="h-full w-full overflow-y-auto p-6 lg:p-14 font-sans bg-[#000000] selection:bg-ava-purple/30">
+    <div class="h-full w-full overflow-y-auto p-6 lg:p-14 font-sans bg-[#000000] selection:bg-ava-purple/30 relative">
+        <!-- Ambient background gradients -->
+        <div class="fixed inset-0 pointer-events-none overflow-hidden">
+            <div class="absolute top-0 left-1/4 w-[600px] h-[600px] bg-ava-purple/[0.03] rounded-full blur-[120px] animate-pulse"></div>
+            <div class="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-[#9333ea]/[0.02] rounded-full blur-[100px] animate-pulse" style="animation-delay: 1s;"></div>
+        </div>
+
         <!-- Breadcrumbs & Meta -->
-        <div class="flex items-center justify-between mb-10 animate-in fade-in slide-in-from-top-4 duration-700">
+        <div class="flex items-center justify-between mb-10 animate-in fade-in slide-in-from-top-4 duration-700 relative">
             <div class="flex items-center gap-2 text-[10px] font-black text-white/20 tracking-[0.2em] uppercase">
-                <NuxtLink to="/" class="hover:text-ava-purple transition-colors">OS_LAYER</NuxtLink>
+                <NuxtLink to="/" class="hover:text-ava-purple transition-colors relative group">
+                    <span class="relative z-10">OS_LAYER</span>
+                    <div class="absolute inset-0 bg-ava-purple/10 rounded opacity-0 group-hover:opacity-100 transition-opacity blur"></div>
+                </NuxtLink>
                 <span class="opacity-30">/</span>
                 <span class="text-white/40">INTEL_STACK_CORE</span>
             </div>
             <div class="flex items-center gap-3">
-                <div class="h-[1px] w-12 bg-white/5"></div>
+                <div class="h-[1px] w-12 bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
                 <span class="text-[9px] font-mono text-white/10 tracking-widest">LAYER_VISUALIZER_STABLE</span>
             </div>
         </div>
 
         <!-- Header Section -->
         <div
-            class="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16 animate-in fade-in slide-in-from-left-4 duration-700 delay-100">
+            class="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16 animate-in fade-in slide-in-from-left-4 duration-700 delay-100 relative">
             <div class="space-y-4">
                 <div class="flex items-center gap-4">
                     <div
-                        class="w-12 h-12 rounded-2xl bg-gradient-to-br from-ava-purple to-[#9333ea] flex items-center justify-center shadow-[0_0_20px_rgba(124,58,237,0.3)]">
-                        <Cpu class="w-6 h-6 text-white" />
+                        class="relative w-12 h-12 rounded-2xl bg-gradient-to-br from-ava-purple to-[#9333ea] flex items-center justify-center shadow-[0_0_20px_rgba(124,58,237,0.3)] overflow-hidden group">
+                        <!-- Scan line effect -->
+                        <div class="absolute inset-0 bg-gradient-to-b from-transparent via-white/20 to-transparent translate-y-[-100%] group-hover:translate-y-[100%] transition-transform duration-1000"></div>
+                        <Cpu class="w-6 h-6 text-white relative z-10" />
                     </div>
-                    <h1 class="text-5xl font-black text-white tracking-tighter italic">Intelligence Stack</h1>
+                    <h1 class="text-5xl font-black text-white tracking-tighter italic relative">
+                        Intelligence Stack
+                        <div class="absolute -bottom-2 left-0 w-24 h-[2px] bg-gradient-to-r from-ava-purple via-ava-purple/50 to-transparent"></div>
+                    </h1>
                 </div>
                 <p class="text-white/30 font-medium text-lg max-w-xl leading-relaxed">
                     Tuning the neural kernel and hardware acceleration for optimal local-first response.
@@ -30,37 +44,53 @@
             </div>
             <div class="flex gap-4">
                 <Button variant="outline"
-                    class="border-white/5 bg-white/[0.02] text-white/40 hover:bg-white/[0.05] hover:text-white gap-3 font-black text-[10px] tracking-[0.2em] uppercase px-8 h-14 rounded-2xl group transition-all"
+                    class="relative border-white/5 bg-white/[0.02] text-white/40 hover:bg-white/[0.05] hover:text-white hover:border-ava-purple/30 gap-3 font-black text-[10px] tracking-[0.2em] uppercase px-8 h-14 rounded-2xl group transition-all overflow-hidden"
                     @click="refreshAll"
                     :disabled="isSaving">
-                    <RefreshCw class="w-4 h-4 group-hover:rotate-180 transition-transform duration-700" />
-                    RECALIBRATE
+                    <!-- Shimmer effect -->
+                    <div class="absolute inset-0 bg-gradient-to-r from-transparent via-ava-purple/10 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700"></div>
+                    <RefreshCw class="w-4 h-4 group-hover:rotate-180 transition-transform duration-700 relative z-10" />
+                    <span class="relative z-10">RECALIBRATE</span>
                 </Button>
             </div>
         </div>
 
-        <div class="mb-8 flex items-center justify-between">
-            <div v-if="isSaving" class="flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.2em] text-ava-purple/70">
-                <div class="w-2 h-2 rounded-full bg-ava-purple animate-pulse"></div>
-                Saving changes...
+        <div class="mb-8 flex items-center justify-between relative">
+            <div v-if="isSaving" class="flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.2em] text-ava-purple/70 relative group">
+                <div class="relative">
+                    <div class="w-2 h-2 rounded-full bg-ava-purple animate-pulse"></div>
+                    <div class="absolute inset-0 w-2 h-2 rounded-full bg-ava-purple animate-ping"></div>
+                </div>
+                <span>Saving changes...</span>
+                <!-- Animated progress bar -->
+                <div class="absolute -bottom-1.5 left-0 right-0 h-[1px] bg-white/5 overflow-hidden">
+                    <div class="h-full w-1/3 bg-gradient-to-r from-transparent via-ava-purple to-transparent animate-[scan_1.5s_ease-in-out_infinite]"></div>
+                </div>
             </div>
         </div>
 
-        <Tabs v-model="activeTab" class="w-full" :class="{ 'opacity-70 pointer-events-none': isSaving }">
+        <Tabs v-model="activeTab" class="w-full relative" :class="{ 'opacity-70 pointer-events-none': isSaving }">
             <div
-                class="flex items-center justify-between mb-12 border-b border-white/[0.03] pb-1 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
+                class="flex items-center justify-between mb-12 border-b border-white/[0.03] pb-1 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200 relative">
+                <!-- Subtle glow effect on active tab -->
+                <div class="absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-ava-purple/20 to-transparent pointer-events-none"></div>
+
                 <TabsList class="bg-transparent p-0 gap-10 h-auto">
                     <TabsTrigger value="stack"
-                        class="px-0 py-4 bg-transparent data-[state=active]:bg-transparent data-[state=active]:text-ava-purple text-white/20 font-black text-[11px] tracking-[0.3em] uppercase rounded-none border-b-2 border-transparent data-[state=active]:border-ava-purple transition-all hover:text-white/60">
-                        01_INTEL_STACK
+                        class="relative px-0 py-4 bg-transparent data-[state=active]:bg-transparent data-[state=active]:text-ava-purple text-white/20 font-black text-[11px] tracking-[0.3em] uppercase rounded-none border-b-2 border-transparent data-[state=active]:border-ava-purple transition-all hover:text-white/60 group">
+                        <span class="relative z-10">01_INTEL_STACK</span>
+                        <!-- Active glow -->
+                        <div class="absolute bottom-0 left-0 right-0 h-[2px] bg-ava-purple opacity-0 data-[state=active]:opacity-100 shadow-[0_0_10px_#7c3aed] transition-opacity"></div>
                     </TabsTrigger>
                     <TabsTrigger value="brains"
-                        class="px-0 py-4 bg-transparent data-[state=active]:bg-transparent data-[state=active]:text-ava-purple text-white/20 font-black text-[11px] tracking-[0.3em] uppercase rounded-none border-b-2 border-transparent data-[state=active]:border-ava-purple transition-all hover:text-white/60">
-                        02_BRAIN_REGISTRY
+                        class="relative px-0 py-4 bg-transparent data-[state=active]:bg-transparent data-[state=active]:text-ava-purple text-white/20 font-black text-[11px] tracking-[0.3em] uppercase rounded-none border-b-2 border-transparent data-[state=active]:border-ava-purple transition-all hover:text-white/60 group">
+                        <span class="relative z-10">02_BRAIN_REGISTRY</span>
+                        <div class="absolute bottom-0 left-0 right-0 h-[2px] bg-ava-purple opacity-0 data-[state=active]:opacity-100 shadow-[0_0_10px_#7c3aed] transition-opacity"></div>
                     </TabsTrigger>
                     <TabsTrigger value="general"
-                        class="px-0 py-4 bg-transparent data-[state=active]:bg-transparent data-[state=active]:text-ava-purple text-white/20 font-black text-[11px] tracking-[0.3em] uppercase rounded-none border-b-2 border-transparent data-[state=active]:border-ava-purple transition-all hover:text-white/60">
-                        03_CORE_IDENTITY
+                        class="relative px-0 py-4 bg-transparent data-[state=active]:bg-transparent data-[state=active]:text-ava-purple text-white/20 font-black text-[11px] tracking-[0.3em] uppercase rounded-none border-b-2 border-transparent data-[state=active]:border-ava-purple transition-all hover:text-white/60 group">
+                        <span class="relative z-10">03_CORE_IDENTITY</span>
+                        <div class="absolute bottom-0 left-0 right-0 h-[2px] bg-ava-purple opacity-0 data-[state=active]:opacity-100 shadow-[0_0_10px_#7c3aed] transition-opacity"></div>
                     </TabsTrigger>
                 </TabsList>
             </div>
@@ -71,12 +101,16 @@
                     <div class="lg:col-span-2 space-y-10">
                         <!-- Health/Dependency Alert -->
                         <div v-if="activeBrain?.health?.status !== 'available'"
-                            class="cyber-card border-amber-500/20 bg-amber-500/[0.02] p-8 flex items-start gap-6 animate-in slide-in-from-top-4 duration-700">
+                            class="relative cyber-card border-amber-500/20 bg-amber-500/[0.02] p-8 flex items-start gap-6 animate-in slide-in-from-top-4 duration-700 overflow-hidden group">
+                            <!-- Alert pulse effect -->
+                            <div class="absolute inset-0 bg-gradient-to-r from-amber-500/[0.03] via-transparent to-amber-500/[0.03] animate-pulse"></div>
+
                             <div
-                                class="p-3 rounded-2xl bg-amber-500/10 text-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.2)]">
-                                <AlertTriangle class="w-6 h-6" />
+                                class="relative p-3 rounded-2xl bg-amber-500/10 text-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.2)]">
+                                <AlertTriangle class="w-6 h-6 animate-pulse" />
+                                <div class="absolute inset-0 rounded-2xl border border-amber-500/30 animate-ping"></div>
                             </div>
-                            <div class="space-y-2 flex-1">
+                            <div class="space-y-2 flex-1 relative z-10">
                                 <h3 class="text-amber-500 font-black text-sm uppercase tracking-widest">Dependency
                                     Missing or Unreachable</h3>
                                 <p class="text-white/40 text-xs font-medium leading-relaxed">
@@ -84,25 +118,32 @@
                                 </p>
                                 <div class="pt-2 flex gap-4">
                                     <a href="https://ollama.com/download" target="_blank"
-                                        class="text-[9px] font-black text-amber-500/60 hover:text-amber-500 tracking-[0.2em] uppercase transition-colors">>>
+                                        class="text-[9px] font-black text-amber-500/60 hover:text-amber-500 tracking-[0.2em] uppercase transition-colors hover:translate-x-1 inline-block">>>
                                         INSTALL_OLLAMA</a>
                                     <button @click="refreshAll"
-                                        class="text-[9px] font-black text-white/20 hover:text-white transition-colors tracking-[0.2em] uppercase">>>
+                                        class="text-[9px] font-black text-white/20 hover:text-white transition-all tracking-[0.2em] uppercase hover:translate-x-1">>>
                                         RETRY_CONNECTION</button>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Inference Engine Configuration -->
-                        <Card class="cyber-card p-10 space-y-10 border-ava-purple/20">
-                            <div class="flex items-center justify-between">
+                        <Card class="cyber-card p-10 space-y-10 border-ava-purple/20 relative overflow-hidden group">
+                            <!-- Corner accents -->
+                            <div class="absolute top-0 left-0 w-24 h-[1px] bg-gradient-to-r from-ava-purple/50 to-transparent"></div>
+                            <div class="absolute top-0 left-0 w-[1px] h-24 bg-gradient-to-b from-ava-purple/50 to-transparent"></div>
+                            <div class="absolute bottom-0 right-0 w-24 h-[1px] bg-gradient-to-l from-ava-purple/50 to-transparent"></div>
+                            <div class="absolute bottom-0 right-0 w-[1px] h-24 bg-gradient-to-t from-ava-purple/50 to-transparent"></div>
+
+                            <div class="flex items-center justify-between relative z-10">
                                 <div class="flex items-center gap-4 border-l-2 border-ava-purple pl-4">
                                     <h2 class="text-xl font-black text-white tracking-tight uppercase tracking-[0.1em]">
                                         Neural Link Configuration</h2>
                                 </div>
                                 <div v-if="activeBrain"
-                                    class="px-3 py-1 rounded-md bg-ava-purple/10 border border-ava-purple/20 text-[9px] font-black text-ava-purple uppercase tracking-widest">
-                                    ACTIVE: {{ activeBrain.name }}
+                                    class="px-3 py-1 rounded-md bg-ava-purple/10 border border-ava-purple/20 text-[9px] font-black text-ava-purple uppercase tracking-widest relative overflow-hidden group/badge">
+                                    <div class="absolute inset-0 bg-gradient-to-r from-transparent via-ava-purple/10 to-transparent translate-x-[-200%] group-hover/badge:translate-x-[200%] transition-transform duration-700"></div>
+                                    <span class="relative z-10">ACTIVE: {{ activeBrain.name }}</span>
                                 </div>
                             </div>
 
@@ -185,8 +226,11 @@
                         </Card>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
-                            <Card class="cyber-card p-10 space-y-10 group">
-                                <div class="flex items-center gap-4 border-l-2 border-ava-purple pl-4">
+                            <Card class="cyber-card p-10 space-y-10 group relative overflow-hidden">
+                                <!-- Hover effect -->
+                                <div class="absolute inset-0 bg-gradient-to-br from-ava-purple/[0.02] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+
+                                <div class="flex items-center gap-4 border-l-2 border-ava-purple pl-4 relative z-10">
                                     <h2 class="text-xl font-black text-white tracking-tight uppercase tracking-[0.1em]">
                                         Kernel Paths</h2>
                                 </div>
@@ -220,10 +264,16 @@
                             </Card>
 
                             <div
-                                class="glass-panel p-10 rounded-3xl flex flex-col justify-center gap-6 border-white/[0.01]">
-                                <div class="space-y-2">
-                                    <div class="text-[9px] font-black text-[#34d399] tracking-widest uppercase">
-                                        SYSLOG_TELEMETRY</div>
+                                class="glass-panel p-10 rounded-3xl flex flex-col justify-center gap-6 border-white/[0.01] relative overflow-hidden group">
+                                <!-- Scan line effect -->
+                                <div class="absolute inset-0 bg-gradient-to-b from-transparent via-[#34d399]/[0.03] to-transparent translate-y-[-100%] group-hover:translate-y-[100%] transition-transform duration-2000"></div>
+
+                                <div class="space-y-2 relative z-10">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-1 h-1 rounded-full bg-[#34d399] shadow-[0_0_8px_#34d399] animate-pulse"></div>
+                                        <div class="text-[9px] font-black text-[#34d399] tracking-widest uppercase">
+                                            SYSLOG_TELEMETRY</div>
+                                    </div>
                                     <p
                                         class="text-[11px] text-white/30 font-bold leading-relaxed uppercase tracking-tighter">
                                         Your local
@@ -231,10 +281,10 @@
                                         high-speed inference.
                                     </p>
                                 </div>
-                                <div class="flex gap-3">
+                                <div class="flex gap-3 relative z-10">
                                     <div v-for="i in 12" :key="i"
-                                        class="h-8 w-1.5 bg-white/[0.02] rounded-full overflow-hidden relative">
-                                        <div class="absolute bottom-0 left-0 w-full bg-ava-purple rounded-full transition-all duration-1000"
+                                        class="h-8 w-1.5 bg-white/[0.02] rounded-full overflow-hidden relative group/bar">
+                                        <div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-ava-purple to-[#34d399] rounded-full transition-all duration-1000 group-hover/bar:from-[#34d399] group-hover/bar:to-ava-purple"
                                             :style="{ height: Math.random() * 100 + '%', opacity: 0.2 + Math.random() * 0.5 }">
                                         </div>
                                     </div>
@@ -245,16 +295,21 @@
 
                     <div class="space-y-10">
                         <!-- Telemetry Card -->
-                        <Card class="cyber-card p-10 space-y-10 overflow-hidden relative border-ava-purple/20">
-                            <div class="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
-                                <Pentagon class="w-32 h-32 text-ava-purple rotate-12" />
+                        <Card class="cyber-card p-10 space-y-10 overflow-hidden relative border-ava-purple/20 group">
+                            <!-- Animated background glow -->
+                            <div class="absolute inset-0 bg-gradient-to-br from-ava-purple/[0.03] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+
+                            <div class="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none group-hover:opacity-[0.05] transition-opacity">
+                                <Pentagon class="w-32 h-32 text-ava-purple rotate-12 group-hover:rotate-45 transition-transform duration-1000" />
                             </div>
+
                             <div class="flex justify-between items-center relative z-10">
                                 <h2 class="text-xl font-black text-white tracking-tight uppercase tracking-[0.1em]">
                                     Engine Pulse</h2>
-                                <div class="flex items-center gap-2">
-                                    <div
-                                        class="w-1.5 h-1.5 bg-[#34d399] rounded-full neon-pulse shadow-[0_0_8px_#34d399]">
+                                <div class="flex items-center gap-2 relative">
+                                    <div class="relative">
+                                        <div class="w-1.5 h-1.5 bg-[#34d399] rounded-full shadow-[0_0_8px_#34d399]"></div>
+                                        <div class="absolute inset-0 w-1.5 h-1.5 bg-[#34d399] rounded-full animate-ping"></div>
                                     </div>
                                     <span
                                         class="text-[9px] font-black text-[#34d399] tracking-widest uppercase">LIVE_STATS</span>
@@ -332,14 +387,17 @@
 
                         <div class="space-y-4">
                             <Button
-                                class="w-full h-16 rounded-[2rem] bg-ava-purple hover:bg-[#6d28d9] text-white font-black text-[10px] tracking-[0.25em] uppercase shadow-[0_15px_40px_rgba(124,58,237,0.2)] gap-4 transition-all hover:scale-[1.02]">
-                                <Database class="w-4 h-4" />
-                                OPTIMIZE_LOCAL_WEIGHTS
+                                class="relative w-full h-16 rounded-[2rem] bg-gradient-to-br from-ava-purple to-[#9333ea] hover:from-[#6d28d9] hover:to-[#7e22ce] text-white font-black text-[10px] tracking-[0.25em] uppercase shadow-[0_15px_40px_rgba(124,58,237,0.2)] gap-4 transition-all hover:scale-[1.02] overflow-hidden group">
+                                <!-- Shimmer effect -->
+                                <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700"></div>
+                                <Database class="w-4 h-4 relative z-10" />
+                                <span class="relative z-10">OPTIMIZE_LOCAL_WEIGHTS</span>
                             </Button>
                             <Button variant="outline"
-                                class="w-full h-16 rounded-[2rem] border-white/5 bg-white/[0.02] text-white/30 hover:bg-white/[0.05] hover:text-white font-black text-[10px] tracking-[0.25em] uppercase gap-4 transition-all">
-                                <Download class="w-4 h-4" />
-                                SYNC_NEURAL_MODELS
+                                class="relative w-full h-16 rounded-[2rem] border-white/5 bg-white/[0.02] text-white/30 hover:bg-white/[0.05] hover:text-white hover:border-ava-purple/30 font-black text-[10px] tracking-[0.25em] uppercase gap-4 transition-all overflow-hidden group">
+                                <div class="absolute inset-0 bg-gradient-to-r from-transparent via-ava-purple/5 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700"></div>
+                                <Download class="w-4 h-4 relative z-10" />
+                                <span class="relative z-10">SYNC_NEURAL_MODELS</span>
                             </Button>
                         </div>
                     </div>
@@ -351,15 +409,23 @@
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
                     <div class="lg:col-span-2 space-y-4">
                         <div v-for="(brain, idx) in brains" :key="brain.id"
-                            class="cyber-card p-6 flex flex-col sm:flex-row items-center justify-between gap-6 group hover:translate-x-1 animate-in slide-in-from-right-4 duration-500"
+                            class="cyber-card p-6 flex flex-col sm:flex-row items-center justify-between gap-6 group hover:translate-x-1 animate-in slide-in-from-right-4 duration-500 relative overflow-hidden"
                             :style="{ animationDelay: idx * 100 + 'ms' }">
-                            <div class="flex items-center gap-6">
+                            <!-- Hover glow effect -->
+                            <div class="absolute inset-0 bg-gradient-to-r from-ava-purple/[0.03] via-transparent to-ava-purple/[0.03] opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+
+                            <div class="flex items-center gap-6 relative z-10">
                                 <div
-                                    class="w-16 h-16 rounded-[1.25rem] bg-white/[0.02] border border-white/[0.05] flex items-center justify-center text-ava-purple group-hover:scale-110 transition-transform duration-500 relative">
-                                    <Brain v-if="brain.provider !== 'openai'" class="w-8 h-8" />
-                                    <Pentagon v-else class="w-8 h-8" />
+                                    class="relative w-16 h-16 rounded-[1.25rem] bg-white/[0.02] border border-white/[0.05] flex items-center justify-center text-ava-purple group-hover:scale-110 transition-transform duration-500 overflow-hidden">
+                                    <!-- Scan line on hover -->
+                                    <div class="absolute inset-0 bg-gradient-to-b from-transparent via-ava-purple/20 to-transparent translate-y-[-100%] group-hover:translate-y-[100%] transition-transform duration-1000"></div>
+
+                                    <Brain v-if="brain.provider !== 'openai'" class="w-8 h-8 relative z-10" />
+                                    <Pentagon v-else class="w-8 h-8 relative z-10" />
+
                                     <div v-if="activeBrainId === brain.id"
                                         class="absolute -top-1 -right-1 w-4 h-4 bg-ava-purple rounded-full border-2 border-[#000000] shadow-[0_0_10px_#7c3aed]">
+                                        <div class="absolute inset-0 w-4 h-4 bg-ava-purple rounded-full animate-ping"></div>
                                     </div>
                                 </div>
                                 <div class="space-y-1">
@@ -399,8 +465,12 @@
                     </div>
 
                     <div class="space-y-10">
-                        <Card class="cyber-card p-10 space-y-10">
-                            <div class="flex items-center gap-4 border-l-2 border-ava-purple pl-4">
+                        <Card class="cyber-card p-10 space-y-10 relative overflow-hidden group">
+                            <!-- Corner accents -->
+                            <div class="absolute top-0 left-0 w-16 h-[1px] bg-gradient-to-r from-ava-purple/50 to-transparent"></div>
+                            <div class="absolute top-0 left-0 w-[1px] h-16 bg-gradient-to-b from-ava-purple/50 to-transparent"></div>
+
+                            <div class="flex items-center gap-4 border-l-2 border-ava-purple pl-4 relative z-10">
                                 <h2 class="text-xl font-black text-white tracking-tight uppercase tracking-[0.1em]">
                                     Cognitive Flow</h2>
                             </div>
@@ -439,8 +509,12 @@
             <!-- General Settings Tab -->
             <TabsContent value="general" class="animate-in fade-in zoom-in-95 duration-500 outline-none">
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
-                    <Card class="cyber-card p-10 space-y-10 group">
-                        <div class="flex items-center gap-4 border-l-2 border-ava-purple pl-4">
+                    <Card class="cyber-card p-10 space-y-10 group relative overflow-hidden">
+                        <!-- Decorative corners -->
+                        <div class="absolute top-0 right-0 w-20 h-[1px] bg-gradient-to-l from-ava-purple/50 to-transparent"></div>
+                        <div class="absolute top-0 right-0 w-[1px] h-20 bg-gradient-to-b from-ava-purple/50 to-transparent"></div>
+
+                        <div class="flex items-center gap-4 border-l-2 border-ava-purple pl-4 relative z-10">
                             <h2 class="text-xl font-black text-white tracking-tight uppercase tracking-[0.1em]">Identity
                                 & Voice</h2>
                         </div>
@@ -465,8 +539,11 @@
                     </Card>
 
                     <div class="space-y-10">
-                        <Card class="cyber-card p-10 space-y-10">
-                            <div class="flex items-center gap-4 border-l-2 border-[#34d399] pl-4">
+                        <Card class="cyber-card p-10 space-y-10 relative overflow-hidden group">
+                            <!-- Ambient glow -->
+                            <div class="absolute inset-0 bg-gradient-to-br from-[#34d399]/[0.02] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+
+                            <div class="flex items-center gap-4 border-l-2 border-[#34d399] pl-4 relative z-10">
                                 <h2 class="text-xl font-black text-white tracking-tight uppercase tracking-[0.1em]">
                                     Engine Parameters</h2>
                             </div>
@@ -498,22 +575,32 @@
                         </Card>
                     </div>
                 </div>
-                <Card class="cyber-card p-10 mt-10">
-                    <div class="flex items-center gap-4 border-l-2 border-red-500/40 pl-4">
+                <Card class="cyber-card p-10 mt-10 relative overflow-hidden group">
+                    <!-- Corner accents for error section -->
+                    <div class="absolute top-0 left-0 w-24 h-[1px] bg-gradient-to-r from-red-500/30 to-transparent"></div>
+                    <div class="absolute top-0 left-0 w-[1px] h-24 bg-gradient-to-b from-red-500/30 to-transparent"></div>
+
+                    <div class="flex items-center gap-4 border-l-2 border-red-500/40 pl-4 relative z-10">
                         <h2 class="text-xl font-black text-white tracking-tight uppercase tracking-[0.1em]">
                             Error Log</h2>
                         <span class="text-[9px] font-black text-white/30 tracking-[0.2em] uppercase">
                             Last 50
                         </span>
                     </div>
-                    <div class="mt-6 space-y-4 max-h-[320px] overflow-y-auto pr-2">
+                    <div class="mt-6 space-y-4 max-h-[320px] overflow-y-auto pr-2 relative z-10">
                         <div v-if="errorLog.length === 0"
-                            class="text-[11px] font-black tracking-[0.2em] uppercase text-white/20">
+                            class="text-[11px] font-black tracking-[0.2em] uppercase text-white/20 text-center py-10">
+                            <div class="w-12 h-12 mx-auto mb-3 rounded-xl bg-white/[0.02] border border-white/5 flex items-center justify-center">
+                                <span class="text-2xl">✓</span>
+                            </div>
                             No errors recorded.
                         </div>
                         <div v-for="entry in errorLog" :key="entry.id"
-                            class="flex items-start justify-between gap-6 border border-white/5 rounded-2xl px-5 py-4 bg-white/[0.02]">
-                            <div>
+                            class="flex items-start justify-between gap-6 border border-white/5 rounded-2xl px-5 py-4 bg-white/[0.02] hover:bg-white/[0.03] hover:border-red-500/20 transition-all group/error relative overflow-hidden">
+                            <!-- Subtle error glow -->
+                            <div class="absolute inset-0 bg-gradient-to-r from-red-500/[0.02] via-transparent to-red-500/[0.02] opacity-0 group-hover/error:opacity-100 transition-opacity"></div>
+
+                            <div class="relative z-10">
                                 <div class="text-[9px] font-black tracking-[0.2em] uppercase text-ava-purple/60">
                                     {{ entry.code }}
                                 </div>
@@ -525,9 +612,10 @@
                                 </div>
                             </div>
                             <button v-if="entry.retry_allowed && entry.context?.command"
-                                class="px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] bg-ava-purple/20 text-ava-purple hover:bg-ava-purple/30 transition-colors"
+                                class="relative px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] bg-ava-purple/20 text-ava-purple hover:bg-ava-purple/30 transition-all overflow-hidden group/retry shrink-0"
                                 @click="$ava?.sendCommand(entry.context.command)">
-                                Retry
+                                <div class="absolute inset-0 bg-gradient-to-r from-transparent via-ava-purple/10 to-transparent translate-x-[-200%] group-hover/retry:translate-x-[200%] transition-transform duration-500"></div>
+                                <span class="relative z-10">Retry</span>
                             </button>
                         </div>
                     </div>
@@ -537,15 +625,23 @@
 
         <!-- Footer Stats -->
         <div
-            class="mt-20 pt-10 border-t border-white/[0.03] flex flex-col md:flex-row justify-between items-center gap-6 text-[9px] font-black tracking-[0.3em] text-white/10 uppercase">
+            class="mt-20 pt-10 border-t border-white/[0.03] flex flex-col md:flex-row justify-between items-center gap-6 text-[9px] font-black tracking-[0.3em] text-white/10 uppercase relative">
+            <!-- Subtle gradient line above footer -->
+            <div class="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-ava-purple/10 to-transparent"></div>
+
             <div class="flex items-center gap-8">
-                <div class="flex items-center gap-3">
-                    <div class="w-1.5 h-1.5 bg-[#34d399] rounded-full animate-pulse shadow-[0_0_8px_#34d39966]"></div>
-                    KERNEL: OLLAMA/v0.1.32
+                <div class="flex items-center gap-3 group cursor-help">
+                    <div class="relative">
+                        <div class="w-1.5 h-1.5 bg-[#34d399] rounded-full shadow-[0_0_8px_#34d39966]"></div>
+                        <div class="absolute inset-0 w-1.5 h-1.5 bg-[#34d399] rounded-full animate-ping"></div>
+                    </div>
+                    <span class="group-hover:text-[#34d399] transition-colors">KERNEL: OLLAMA/v0.1.32</span>
                 </div>
-                <div class="opacity-50">DRIVER: NVIDIA_CUDA_12.4.X</div>
+                <div class="opacity-50 hover:opacity-100 transition-opacity cursor-help">DRIVER: NVIDIA_CUDA_12.4.X</div>
             </div>
-            <div class="hover:text-white/40 transition-colors cursor-help italic">AVA_INTEL_SYSTEM_V2.5.0-STABLE.ARC_64
+            <div class="hover:text-white/40 transition-colors cursor-help italic relative group">
+                <span>AVA_INTEL_SYSTEM_V2.5.0-STABLE.ARC_64</span>
+                <div class="absolute -bottom-0.5 left-0 right-0 h-[1px] bg-gradient-to-r from-ava-purple via-ava-purple to-ava-purple scale-x-0 group-hover:scale-x-100 transition-transform origin-left"></div>
             </div>
         </div>
     </div>
@@ -673,6 +769,11 @@ const vramFormatted = computed(() => {
 </script>
 
 <style scoped>
+@keyframes scan {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
 /* Spectral Slider Styling */
 :deep(.spectral-slider) {
     @apply h-12 flex items-center;

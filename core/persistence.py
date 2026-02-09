@@ -85,6 +85,13 @@ class Persistence:
             )
         ''')
 
+        # Migrate existing conversation_sessions table to add pinned column if it doesn't exist
+        cursor.execute("PRAGMA table_info(conversation_sessions)")
+        columns = [column[1] for column in cursor.fetchall()]
+        if 'pinned' not in columns:
+            cursor.execute("ALTER TABLE conversation_sessions ADD COLUMN pinned INTEGER DEFAULT 0")
+            print("✓ Added 'pinned' column to conversation_sessions table")
+
         # Table for conversation messages (richer than history)
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS conversation_messages (
