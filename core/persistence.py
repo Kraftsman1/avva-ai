@@ -80,7 +80,8 @@ class Persistence:
                 created_at DATETIME,
                 updated_at DATETIME,
                 title TEXT,
-                brain_id TEXT
+                brain_id TEXT,
+                pinned INTEGER DEFAULT 0
             )
         ''')
 
@@ -393,7 +394,7 @@ class Persistence:
         cursor = conn.cursor()
         try:
             cursor.execute('''
-                SELECT id, created_at, updated_at, title, brain_id
+                SELECT id, created_at, updated_at, title, brain_id, pinned
                 FROM conversation_sessions WHERE id = ?
             ''', (session_id,))
             row = cursor.fetchone()
@@ -404,7 +405,8 @@ class Persistence:
                     'created_at': datetime.fromisoformat(row[1]) if row[1] else None,
                     'updated_at': datetime.fromisoformat(row[2]) if row[2] else None,
                     'title': row[3],
-                    'brain_id': row[4]
+                    'brain_id': row[4],
+                    'pinned': bool(row[5]) if len(row) > 5 else False
                 }
             return None
         finally:
@@ -437,14 +439,14 @@ class Persistence:
             conn.close()
 
     def list_sessions(self, limit=50, offset=0):
-        """List recent conversation sessions."""
+        """List recent conversation sessions, pinned first."""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         try:
             cursor.execute('''
-                SELECT id, created_at, updated_at, title, brain_id
+                SELECT id, created_at, updated_at, title, brain_id, COALESCE(pinned, 0) as pinned
                 FROM conversation_sessions
-                ORDER BY updated_at DESC
+                ORDER BY pinned DESC, updated_at DESC
                 LIMIT ? OFFSET ?
             ''', (limit, offset))
             rows = cursor.fetchall()
@@ -454,7 +456,8 @@ class Persistence:
                 'created_at': datetime.fromisoformat(row[1]) if row[1] else None,
                 'updated_at': datetime.fromisoformat(row[2]) if row[2] else None,
                 'title': row[3],
-                'brain_id': row[4]
+                'brain_id': row[4],
+                'pinned': bool(row[5])
             } for row in rows]
         finally:
             conn.close()
@@ -498,6 +501,31 @@ class Persistence:
             return True
         except Exception as e:
             print(f"Error updating session title: {e}")
+            return False
+        finally:
+            conn.close()
+
+    def toggle_session_pin(self, session_id):
+        """Toggle pin status for a session."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        try:
+            # Get current pin status
+            cursor.execute('SELECT COALESCE(pinned, 0) FROM conversation_sessions WHERE id = ?', (session_id,))
+            row = cursor.fetchone()
+            if row:
+                current_pinned = bool(row[0])
+                new_pinned = 0 if current_pinned else 1
+                cursor.execute('''
+                    UPDATE conversation_sessions
+                    SET pinned = ?
+                    WHERE id = ?
+                ''', (new_pinned, session_id))
+                conn.commit()
+                return bool(new_pinned)
+            return False
+        except Exception as e:
+            print(f"Error toggling session pin: {e}")
             return False
         finally:
             conn.close()

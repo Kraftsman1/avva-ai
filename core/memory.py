@@ -63,6 +63,9 @@ class Memory:
             intent=intent,
             tool_call=tool_call
         )
+        # Generate smart title after first exchange (user + assistant)
+        if self.session_title == "New Conversation":
+            self._generate_smart_title()
 
     def get_recent_context(self, max_messages=10, include_sessions=3):
         """
@@ -166,6 +169,91 @@ class Memory:
             if session_id == self.current_session_id:
                 self.current_session_id = None
 
+    def toggle_pin(self, session_id):
+        """Toggle pin status for a session."""
+        return storage.toggle_session_pin(session_id)
+
+    def export_conversation(self, session_id=None, format='markdown'):
+        """
+        Export a conversation to markdown or JSON format.
+
+        Args:
+            session_id: Session to export (default: current)
+            format: 'markdown' or 'json'
+
+        Returns:
+            Formatted string content
+        """
+        session_id = session_id or self.current_session_id
+        if not session_id:
+            return None
+
+        session = storage.get_session(session_id)
+        messages = storage.get_session_messages(session_id, limit=1000)
+
+        if not session:
+            return None
+
+        if format == 'json':
+            import json
+            from datetime import datetime
+
+            # Serialize datetime objects
+            def serialize(obj):
+                if hasattr(obj, 'isoformat'):
+                    return obj.isoformat()
+                return obj
+
+            export_data = {
+                'session': {
+                    'id': session['id'],
+                    'title': session['title'],
+                    'created_at': serialize(session.get('created_at')),
+                    'updated_at': serialize(session.get('updated_at')),
+                    'brain_id': session.get('brain_id'),
+                    'pinned': session.get('pinned', False)
+                },
+                'messages': [
+                    {
+                        'role': msg['role'],
+                        'content': msg['content'],
+                        'timestamp': serialize(msg.get('timestamp')),
+                        'brain_id': msg.get('brain_id'),
+                        'intent': msg.get('intent')
+                    }
+                    for msg in messages
+                ],
+                'exported_at': datetime.now().isoformat()
+            }
+            return json.dumps(export_data, indent=2)
+
+        else:  # markdown
+            lines = []
+            lines.append(f"# {session['title']}")
+            lines.append("")
+            lines.append(f"**Created:** {session.get('created_at', 'Unknown').strftime('%Y-%m-%d %H:%M') if hasattr(session.get('created_at'), 'strftime') else session.get('created_at', 'Unknown')}")
+            lines.append(f"**Brain:** {session.get('brain_id', 'Unknown')}")
+            lines.append("")
+            lines.append("---")
+            lines.append("")
+
+            for msg in messages:
+                timestamp = msg.get('timestamp', '')
+                if hasattr(timestamp, 'strftime'):
+                    timestamp_str = timestamp.strftime('%Y-%m-%d %H:%M:%S')
+                else:
+                    timestamp_str = str(timestamp)
+
+                role_label = "**User**" if msg['role'] == 'user' else "**AVA**"
+                lines.append(f"### {role_label} - {timestamp_str}")
+                lines.append("")
+                lines.append(msg['content'])
+                lines.append("")
+                lines.append("---")
+                lines.append("")
+
+            return "\n".join(lines)
+
     def clear_old_sessions(self, days=30):
         """Delete sessions older than specified days."""
         return storage.delete_old_sessions(days=days)
@@ -179,7 +267,7 @@ class Memory:
         }
 
     def _update_session_title(self, first_message):
-        """Generate a title from the first user message."""
+        """Generate a basic title from the first user message (fallback)."""
         # Take first 50 chars or up to first sentence
         title = first_message[:50].strip()
         if '?' in title:
@@ -192,6 +280,57 @@ class Memory:
         self.session_title = title
         # Update in database
         storage.update_session_title(self.current_session_id, title)
+
+    def _generate_smart_title(self):
+        """Generate an intelligent title using the Brain."""
+        try:
+            from core.brain import brain
+
+            # Get the first exchange (user message + assistant response)
+            messages = storage.get_session_messages(self.current_session_id, limit=2)
+            if len(messages) < 2:
+                return
+
+            # Build context from first exchange
+            user_msg = messages[0]['content']
+            assistant_msg = messages[1]['content']
+
+            # Ask Brain to generate a concise title
+            prompt = f"""Generate a very short, descriptive title (3-5 words max) for this conversation.
+The title should capture the main topic or question.
+Do not use quotes. Just return the title text.
+
+User: {user_msg[:200]}
+Assistant: {assistant_msg[:200]}
+
+Title:"""
+
+            response = brain.process(prompt)
+
+            if response:
+                # Extract title from response
+                if isinstance(response, dict):
+                    title = response.get("text", "").strip()
+                else:
+                    title = str(response).strip()
+
+                # Clean up the title
+                title = title.replace('"', '').replace("'", '').strip()
+                # Remove common prefixes
+                for prefix in ["Title:", "title:", "**", "*"]:
+                    title = title.replace(prefix, '').strip()
+
+                # Limit length
+                if len(title) > 60:
+                    title = title[:57] + '...'
+
+                # Only update if we got a valid title
+                if title and len(title) > 3:
+                    self.session_title = title
+                    storage.update_session_title(self.current_session_id, title)
+                    print(f"✨ Generated smart title: {title}")
+        except Exception as e:
+            print(f"Could not generate smart title, using fallback: {e}")
 
 
 memory = Memory()

@@ -313,6 +313,33 @@ class WebSocketServer:
                             message_id
                         )))
 
+                    elif event_type == "conversation.pin":
+                        from core.memory import memory
+                        session_id = payload.get("session_id")
+                        if session_id:
+                            pinned = memory.toggle_pin(session_id)
+                            await self.broadcast(self._build_message(
+                                "conversation.pinned",
+                                {"session_id": session_id, "pinned": pinned},
+                                message_id
+                            ))
+
+                    elif event_type == "conversation.export":
+                        from core.memory import memory
+                        session_id = payload.get("session_id")
+                        format_type = payload.get("format", "markdown")
+                        if session_id:
+                            content = memory.export_conversation(session_id, format_type)
+                            await websocket.send(json.dumps(self._build_message(
+                                "conversation.exported",
+                                {
+                                    "session_id": session_id,
+                                    "format": format_type,
+                                    "content": content
+                                },
+                                message_id
+                            )))
+
                 except json.JSONDecodeError:
                     print("⚠️ Received invalid JSON from client.")
                     await self._broadcast_error(

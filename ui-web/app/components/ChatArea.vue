@@ -32,11 +32,16 @@
             </div>
 
             <div class="flex flex-col" :class="msg.sender === 'user' ? 'items-end' : 'items-start'">
-              <!-- Attribution -->
-              <span class="text-[9px] font-black tracking-[0.25em] uppercase mb-3 px-1"
-                :class="msg.sender === 'user' ? 'text-white/20' : 'text-ava-purple/50'">
-                {{ msg.sender === 'user' ? 'USER_INPUT' : 'AVA_CORE_RESPONSE' }}
-              </span>
+              <!-- Attribution with Timestamp -->
+              <div class="flex items-center gap-2 mb-3 px-1">
+                <span class="text-[9px] font-black tracking-[0.25em] uppercase"
+                  :class="msg.sender === 'user' ? 'text-white/20' : 'text-ava-purple/50'">
+                  {{ msg.sender === 'user' ? 'USER_INPUT' : 'AVA_CORE_RESPONSE' }}
+                </span>
+                <span v-if="msg.timestamp" class="text-[8px] font-medium text-white/15 tracking-wide">
+                  {{ formatTimestamp(msg.timestamp) }}
+                </span>
+              </div>
 
               <!-- Content Bubble -->
               <div
@@ -190,6 +195,24 @@ watch(isThinking, (newVal) => {
     })
   }
 })
+
+const formatTimestamp = (timestamp) => {
+  if (!timestamp) return ''
+  const date = new Date(timestamp)
+  const now = new Date()
+  const diff = now - date
+  const seconds = Math.floor(diff / 1000)
+  const minutes = Math.floor(seconds / 60)
+  const hours = Math.floor(minutes / 60)
+  const days = Math.floor(hours / 24)
+
+  if (seconds < 60) return 'just now'
+  if (minutes < 60) return `${minutes}m ago`
+  if (hours < 24) return `${hours}h ago`
+  if (days === 1) return 'yesterday'
+  if (days < 7) return `${days}d ago`
+  return date.toLocaleDateString([], { month: 'short', day: 'numeric' })
+}
 
 const hasCode = (text) => text.includes('```')
 const getCode = (text) => text.split('```')[1]?.split('\n').slice(1).join('\n')

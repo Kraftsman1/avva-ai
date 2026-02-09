@@ -42,22 +42,43 @@
             class="group p-4 rounded-xl cursor-pointer transition-all border border-transparent"
             :class="currentId === session.id ? 'bg-ava-purple/10 border-ava-purple/30' : 'hover:bg-white/[0.02] hover:border-white/[0.05]'">
             <div class="flex items-start justify-between mb-2">
-              <span class="text-[11px] font-medium text-white/80 truncate pr-2">
-                {{ session.title || 'Untitled' }}
-              </span>
-              <span class="text-[9px] font-black text-white/20 tracking-[0.1em]">
+              <div class="flex items-center gap-1.5 flex-1 min-w-0">
+                <Pin v-if="session.pinned" :size="10" class="text-ava-purple shrink-0" />
+                <span class="text-[11px] font-medium text-white/80 truncate">
+                  {{ session.title || 'Untitled' }}
+                </span>
+              </div>
+              <span class="text-[9px] font-black text-white/20 tracking-[0.1em] shrink-0 ml-2">
                 {{ formatDate(session.updated_at) }}
               </span>
             </div>
             <div class="flex items-center justify-between">
               <span class="text-[9px] text-white/30 capitalize">{{ session.brain_id || 'Local' }}</span>
-              <Button
-                variant="ghost"
-                size="icon"
-                @click.stop="deleteConv(session.id)"
-                class="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Trash2 :size="12" class="text-white/30 hover:text-red-400" />
-              </Button>
+              <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  @click.stop="exportConv(session.id)"
+                  class="h-6 w-6"
+                  title="Export">
+                  <Download :size="12" class="text-white/30 hover:text-green-400" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  @click.stop="togglePin(session.id)"
+                  class="h-6 w-6"
+                  :title="session.pinned ? 'Unpin' : 'Pin'">
+                  <component :is="session.pinned ? PinOff : Pin" :size="12" class="text-white/30 hover:text-ava-purple" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  @click.stop="deleteConv(session.id)"
+                  class="h-6 w-6">
+                  <Trash2 :size="12" class="text-white/30 hover:text-red-400" />
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -78,7 +99,7 @@
 </template>
 
 <script setup>
-import { Search, X, Trash2 } from 'lucide-vue-next'
+import { Search, X, Trash2, Pin, PinOff, Download } from 'lucide-vue-next'
 
 const props = defineProps({
   isOpen: Boolean
@@ -132,6 +153,19 @@ const startNew = () => {
   $ava?.startConversation?.('New Conversation')
   emit('select', null)
   emit('close')
+}
+
+const togglePin = (id) => {
+  $ava?.togglePin?.(id)
+}
+
+const exportConv = (id) => {
+  const session = conversations.value.find(s => s.id === id)
+  const title = session?.title || 'conversation'
+
+  // Show export format selection
+  const format = confirm('Export as Markdown?\n\nOK = Markdown\nCancel = JSON') ? 'markdown' : 'json'
+  $ava?.exportConversation?.(id, format, title)
 }
 
 let searchTimeout = null

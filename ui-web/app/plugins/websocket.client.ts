@@ -134,13 +134,15 @@ export default defineNuxtPlugin(() => {
                     if (streamIdx >= 0) {
                         state.messages[streamIdx].text = payload.text
                         state.messages[streamIdx].data = payload.data
+                        state.messages[streamIdx].timestamp = new Date().toISOString()
                         delete (state.messages[streamIdx] as any).streamId
                     } else {
                         state.messages.push({
                             id: Date.now(),
                             text: payload.text,
                             sender: 'avva',
-                            data: payload.data
+                            data: payload.data,
+                            timestamp: new Date().toISOString()
                         })
                     }
                     break
@@ -148,7 +150,8 @@ export default defineNuxtPlugin(() => {
                     state.messages.push({
                         id: Date.now(),
                         text: payload.command,
-                        sender: 'user'
+                        sender: 'user',
+                        timestamp: new Date().toISOString()
                     })
                     break
                 case 'assistant.stream': {
@@ -175,7 +178,8 @@ export default defineNuxtPlugin(() => {
                             id: Date.now(),
                             text: chunk,
                             sender: 'avva',
-                            streamId: id
+                            streamId: id,
+                            timestamp: new Date().toISOString()
                         })
                     }
                     break
@@ -290,13 +294,44 @@ export default defineNuxtPlugin(() => {
                         id: m.id,
                         text: m.content,
                         sender: m.role === 'user' ? 'user' : 'avva',
-                        data: m.data || {}
+                        data: m.data || {},
+                        timestamp: m.timestamp
                     }))
                     break
                 case 'conversation.started':
                     state.currentConversationId = payload.session_id || null
                     state.currentConversationTitle = 'New Conversation'
                     fetchConversations()
+                    break
+                case 'conversation.pinned':
+                    // Update the pinned status in the local state
+                    const pinnedSession = state.conversations.find((s: any) => s.id === payload.session_id)
+                    if (pinnedSession) {
+                        pinnedSession.pinned = payload.pinned
+                        // Re-sort: pinned first
+                        state.conversations.sort((a: any, b: any) => {
+                            if (a.pinned && !b.pinned) return -1
+                            if (!a.pinned && b.pinned) return 1
+                            return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+                        })
+                    }
+                    break
+                case 'conversation.exported':
+                    // Trigger download
+                    if (payload.content) {
+                        const blob = new Blob([payload.content], {
+                            type: payload.format === 'json' ? 'application/json' : 'text/markdown'
+                        })
+                        const url = URL.createObjectURL(blob)
+                        const a = document.createElement('a')
+                        a.href = url
+                        a.download = `conversation-${payload.session_id}.${payload.format === 'json' ? 'json' : 'md'}`
+                        document.body.appendChild(a)
+                        a.click()
+                        document.body.removeChild(a)
+                        URL.revokeObjectURL(url)
+                        addSuccessToast('Conversation exported successfully')
+                    }
                     break
                 case 'conversation.search_results':
                     break
@@ -510,6 +545,26 @@ export default defineNuxtPlugin(() => {
         }
     }
 
+    const togglePin = (sessionId: string) => {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+                id: generateId(),
+                type: 'conversation.pin',
+                payload: { session_id: sessionId }
+            }))
+        }
+    }
+
+    const exportConversation = (sessionId: string, format: 'markdown' | 'json' = 'markdown', title?: string) => {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+                id: generateId(),
+                type: 'conversation.export',
+                payload: { session_id: sessionId, format }
+            }))
+        }
+    }
+
     // Auto-connect on client init
     if (typeof window !== 'undefined') {
         connect()
@@ -535,7 +590,9 @@ export default defineNuxtPlugin(() => {
                 loadConversation,
                 deleteConversation,
                 searchConversations,
-                startConversation
+                startConversation,
+                togglePin,
+                exportConversation
             }
         }
     }
