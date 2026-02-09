@@ -37,6 +37,7 @@ export default defineNuxtPlugin(() => {
     let ws: WebSocket | null = null
     let reconnectTimer: any = null
     const pendingRequests = new Map<string, ReturnType<typeof setTimeout>>()
+    const streamingMessages = new Map<string, number>()
 
     const generateId = () => {
         if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
@@ -123,6 +124,33 @@ export default defineNuxtPlugin(() => {
                         sender: 'user'
                     })
                     break
+                case 'assistant.stream': {
+                    if (!id) break
+                    if (payload.done) {
+                        if (pendingRequests.has(id)) {
+                            clearTimeout(pendingRequests.get(id))
+                            pendingRequests.delete(id)
+                        }
+                        streamingMessages.delete(id)
+                        break
+                    }
+                    const chunk = payload.chunk || ''
+                    if (!streamingMessages.has(id)) {
+                        state.messages.push({
+                            id: Date.now(),
+                            text: chunk,
+                            sender: 'avva'
+                        })
+                        streamingMessages.set(id, state.messages.length - 1)
+                    } else {
+                        const index = streamingMessages.get(id)
+                        const message = state.messages[index]
+                        if (message) {
+                            message.text += chunk
+                        }
+                    }
+                    break
+                }
                 case 'system.stats':
                     state.systemStats = payload
                     break

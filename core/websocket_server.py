@@ -109,7 +109,7 @@ class WebSocketServer:
                             # Forward command to assistant in a separate thread
                             threading.Thread(
                                 target=assistant.process_command,
-                                args=(command, message_id),
+                                args=(command, message_id, True),
                                 daemon=True
                             ).start()
 

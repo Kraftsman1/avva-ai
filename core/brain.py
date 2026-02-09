@@ -245,6 +245,38 @@ class Brain:
             storage.log_interaction("avva", res_text, tool_call)
         
         return response
+
+    def process_stream(self, command, on_chunk, chunk_size=32):
+        """
+        Process a command and emit incremental chunks via callback.
+
+        Args:
+            command: User input string.
+            on_chunk: Callable that receives chunk strings.
+            chunk_size: Character size per chunk.
+        """
+        if not command:
+            return None, None
+
+        storage.log_interaction("user", command)
+
+        response = self._get_response(command)
+
+        if response:
+            if isinstance(response, dict):
+                text = response.get("text") or ""
+                data = response
+            else:
+                text = str(response)
+                data = None
+
+            for chunk in self._chunk_text(text, chunk_size):
+                on_chunk(chunk)
+
+            storage.log_interaction("avva", text, data.get("exec_str") if isinstance(data, dict) else None)
+            return text, data
+
+        return None, None
     
     def _get_response(self, command):
         """Internal helper to get response from tiers."""
@@ -311,6 +343,13 @@ class Brain:
         
         # Return natural response
         return brain_response.natural_response or brain_response.content
+
+    @staticmethod
+    def _chunk_text(text, chunk_size):
+        if not text:
+            return
+        for start in range(0, len(text), chunk_size):
+            yield text[start:start + chunk_size]
     
     def _try_brain_execution(self, brain, command, context):
         """Try to execute command with a specific brain."""
