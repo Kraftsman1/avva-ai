@@ -47,13 +47,14 @@ class ClaudeBrain(BaseBrain):
         capabilities = [
             BrainCapability.CHAT,
             BrainCapability.TOOL_CALLING,
-            BrainCapability.STREAMING
+            BrainCapability.STREAMING,
+            BrainCapability.WORKFLOW_PLANNING,
         ]
-        
+
         # Vision support for Claude 3+ models
         if "claude-3" in self.model.lower():
             capabilities.append(BrainCapability.VISION)
-        
+
         return capabilities
     
     def get_privacy_level(self) -> PrivacyLevel:
@@ -166,6 +167,24 @@ class ClaudeBrain(BaseBrain):
                 
         except Exception as e:
             return self._build_error_response(f"Claude error: {str(e)}")
+
+    def plan_workflow(self, request: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Plan a multi-step workflow using Claude."""
+        try:
+            if not self.client:
+                self._init_client()
+
+            prompt = self._build_workflow_prompt(request, context)
+            response = self.client.messages.create(
+                model=self.model,
+                max_tokens=1024,
+                temperature=0.2,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            return self._parse_workflow_json(response.content[0].text)
+        except Exception as e:
+            print(f"ClaudeBrain workflow planning error: {e}")
+            return None
 
     def execute_stream(self, prompt: str, context: Dict[str, Any], constraints: Dict[str, Any]):
         """

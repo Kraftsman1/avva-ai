@@ -317,7 +317,7 @@ class Assistant:
         """
         try:
             # Check if brain supports workflow planning
-            active_brain = brain.manager.active_brain
+            active_brain = brain.manager.get_active_brain()
             if not active_brain:
                 return None
 

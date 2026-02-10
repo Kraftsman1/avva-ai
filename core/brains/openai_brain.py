@@ -47,13 +47,14 @@ class OpenAIBrain(BaseBrain):
             BrainCapability.CHAT,
             BrainCapability.TOOL_CALLING,
             BrainCapability.JSON_MODE,
-            BrainCapability.STREAMING
+            BrainCapability.STREAMING,
+            BrainCapability.WORKFLOW_PLANNING,
         ]
-        
+
         # Vision support for GPT-4 Vision and GPT-4o models
         if "vision" in self.model.lower() or "gpt-4o" in self.model.lower():
             capabilities.append(BrainCapability.VISION)
-        
+
         return capabilities
     
     def get_privacy_level(self) -> PrivacyLevel:
@@ -161,6 +162,24 @@ class OpenAIBrain(BaseBrain):
                 
         except Exception as e:
             return self._build_error_response(f"OpenAI error: {str(e)}")
+
+    def plan_workflow(self, request: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Plan a multi-step workflow using OpenAI."""
+        try:
+            if not self.client:
+                self._init_client()
+
+            prompt = self._build_workflow_prompt(request, context)
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.2,
+                response_format={"type": "json_object"},
+            )
+            return self._parse_workflow_json(response.choices[0].message.content)
+        except Exception as e:
+            print(f"OpenAIBrain workflow planning error: {e}")
+            return None
 
     def execute_stream(self, prompt: str, context: Dict[str, Any], constraints: Dict[str, Any]):
         """

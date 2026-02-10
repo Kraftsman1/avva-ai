@@ -48,13 +48,14 @@ class GoogleBrain(BaseBrain):
         capabilities = [
             BrainCapability.CHAT,
             BrainCapability.TOOL_CALLING,
-            BrainCapability.JSON_MODE
+            BrainCapability.JSON_MODE,
+            BrainCapability.WORKFLOW_PLANNING,
         ]
-        
+
         # Vision support for Gemini Pro Vision and 1.5+ models
         if "vision" in self.model.lower() or "1.5" in self.model or "2.0" in self.model:
             capabilities.append(BrainCapability.VISION)
-        
+
         return capabilities
     
     def get_privacy_level(self) -> PrivacyLevel:
@@ -151,6 +152,19 @@ class GoogleBrain(BaseBrain):
         except Exception as e:
             return self._build_error_response(f"Google Gemini error: {str(e)}")
     
+    def plan_workflow(self, request: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Plan a multi-step workflow using Google Gemini."""
+        try:
+            if not self.client:
+                self._init_client()
+
+            prompt = self._build_workflow_prompt(request, context)
+            response = self.client.generate_content(prompt)
+            return self._parse_workflow_json(response.text)
+        except Exception as e:
+            print(f"GoogleBrain workflow planning error: {e}")
+            return None
+
     def estimate_cost(self, prompt: str) -> float:
         """Estimate cost for Google Gemini."""
         # Rough token estimation (4 chars ≈ 1 token)

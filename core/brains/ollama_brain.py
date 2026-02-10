@@ -37,9 +37,10 @@ class OllamaBrain(BaseBrain):
         self.capabilities = [
             BrainCapability.CHAT,
             BrainCapability.JSON_MODE,
-            BrainCapability.OFFLINE
+            BrainCapability.OFFLINE,
+            BrainCapability.WORKFLOW_PLANNING,
         ]
-        
+
         # Check for vision support (llava, bakllava models)
         if "llava" in self.model.lower() or "vision" in self.model.lower():
             self.capabilities.append(BrainCapability.VISION)
@@ -169,6 +170,23 @@ class OllamaBrain(BaseBrain):
                 "max": 32768
             }
         ]
+
+    def plan_workflow(self, request: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Plan a multi-step workflow using Ollama."""
+        try:
+            import ollama
+
+            prompt = self._build_workflow_prompt(request, context)
+            response = ollama.chat(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                format="json",
+                options={"temperature": 0.2, "num_predict": 1024},
+            )
+            return self._parse_workflow_json(response['message']['content'])
+        except Exception as e:
+            print(f"OllamaBrain workflow planning error: {e}")
+            return None
 
     def execute(self, prompt: str, context: Dict[str, Any], constraints: Dict[str, Any]) -> BrainResponse:
         """Execute reasoning with Ollama."""

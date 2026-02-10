@@ -82,6 +82,53 @@ class WebSocketServer:
             "timestamp": datetime.now().isoformat()
         }
 
+    def _is_complex_command(self, command: str) -> bool:
+        """
+        Heuristic to detect multi-step commands worth sending to workflow planning.
+
+        Avoids making an extra LLM call for every simple, single-intent command.
+        """
+        from core.brain import brain
+        from core.brain_interface import BrainCapability
+
+        # Only attempt if the active brain supports workflow planning
+        active_brain = brain.manager.get_active_brain()
+        if not active_brain or not active_brain.supports_capability(BrainCapability.WORKFLOW_PLANNING):
+            return False
+
+        text = command.lower().strip()
+        word_count = len(text.split())
+
+        # Short commands are never multi-step
+        if word_count < 8:
+            return False
+
+        # Multi-step linguistic markers
+        multi_step_markers = [
+            ' and then ', ' and after ', ' after that', ' next, ',
+            ', then ', '; then ', ', and ', ' also ', ' finally ',
+            'step 1', 'first,', 'second,', 'lastly',
+            'set up and', 'create and', 'install and', 'build and',
+        ]
+        if any(marker in text for marker in multi_step_markers):
+            return True
+
+        # Comma-separated action list with 2+ verbs suggests multiple steps
+        action_verbs = [
+            'create', 'install', 'set up', 'setup', 'build', 'run', 'start',
+            'configure', 'initialize', 'write', 'open', 'launch', 'make',
+            'generate', 'update', 'download', 'delete', 'move', 'copy',
+        ]
+        verb_hits = sum(1 for v in action_verbs if v in text)
+        if verb_hits >= 3:
+            return True
+
+        # Long commands with 'and' often describe compound tasks
+        if word_count > 15 and ' and ' in text:
+            return True
+
+        return False
+
     def _build_error_payload(self, code, message, severity="error", retry_allowed=False, context=None):
         return {
             "code": code,
@@ -121,12 +168,17 @@ class WebSocketServer:
                     if event_type == "assistant.command":
                         command = payload.get("command")
                         if command:
-                            # Forward command to assistant in a separate thread
-                            threading.Thread(
-                                target=assistant.process_command,
-                                args=(command, message_id, True),
-                                daemon=True
-                            ).start()
+                            def handle_command(cmd=command, req_id=message_id):
+                                # Try workflow planning for complex multi-step commands
+                                if self._is_complex_command(cmd):
+                                    workflow = assistant.plan_workflow(cmd, req_id)
+                                    if workflow:
+                                        # Workflow card shown in chat — wait for user approval
+                                        return
+                                # Simple command or workflow planning unavailable — process directly
+                                assistant.process_command(cmd, req_id, True)
+
+                            threading.Thread(target=handle_command, daemon=True).start()
 
                     elif event_type == "assistant.interrupt":
                         print("⚡ Interrupt received, stopping current operation...")

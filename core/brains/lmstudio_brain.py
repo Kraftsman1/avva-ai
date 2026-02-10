@@ -54,7 +54,8 @@ class LMStudioBrain(BaseBrain):
             BrainCapability.CHAT,
             BrainCapability.JSON_MODE,
             BrainCapability.OFFLINE,
-            BrainCapability.STREAMING
+            BrainCapability.STREAMING,
+            BrainCapability.WORKFLOW_PLANNING,
         ]
     
     def get_privacy_level(self) -> PrivacyLevel:
@@ -108,6 +109,24 @@ class LMStudioBrain(BaseBrain):
                 message=f"Cannot connect to LM Studio at {self.endpoint}: {str(e)}"
             )
     
+    def plan_workflow(self, request: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Plan a multi-step workflow using LM Studio."""
+        try:
+            if not self.client:
+                self._init_client()
+
+            prompt = self._build_workflow_prompt(request, context)
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.2,
+                max_tokens=1024,
+            )
+            return self._parse_workflow_json(response.choices[0].message.content)
+        except Exception as e:
+            print(f"LMStudioBrain workflow planning error: {e}")
+            return None
+
     def execute(self, prompt: str, context: Dict[str, Any], constraints: Dict[str, Any]) -> BrainResponse:
         """Execute reasoning with LM Studio."""
         try:
