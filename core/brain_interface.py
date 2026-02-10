@@ -20,6 +20,7 @@ class BrainCapability(Enum):
     STREAMING = "streaming"          # Token-by-token streaming
     VISION = "vision"                # Image input processing
     OFFLINE = "offline"              # No network required
+    WORKFLOW_PLANNING = "workflow_planning"  # Multi-step task decomposition
 
 
 class PrivacyLevel(Enum):
@@ -220,10 +221,46 @@ class Brain(ABC):
         """
         return capability in self.get_capabilities()
     
+    def plan_workflow(
+        self,
+        request: str,
+        context: Dict[str, Any]
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Plan a multi-step workflow for a complex request.
+
+        This method analyzes the request and breaks it down into sequential steps.
+        Only providers with WORKFLOW_PLANNING capability should override this.
+
+        Args:
+            request: User's complex request
+            context: Additional context about available skills/tools
+
+        Returns:
+            Dictionary with workflow plan:
+            {
+                "title": "Workflow title",
+                "description": "Overall description",
+                "steps": [
+                    {
+                        "id": "step_1",
+                        "description": "Step description",
+                        "action": "What to do",
+                        "intent": "skill_intent",
+                        "arguments": {},
+                        "dependencies": []
+                    },
+                    ...
+                ]
+            }
+            Returns None if workflow planning not supported or not needed.
+        """
+        return None
+
     def get_display_info(self) -> Dict[str, Any]:
         """
         Get display information for UI rendering.
-        
+
         Returns:
             Dictionary with display metadata
         """

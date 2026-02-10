@@ -340,6 +340,66 @@ class WebSocketServer:
                                 message_id
                             )))
 
+                    elif event_type == "workflow.plan":
+                        command = payload.get("command")
+                        if command:
+                            # Plan workflow in a separate thread
+                            def plan_and_respond():
+                                workflow = assistant.plan_workflow(command, message_id)
+                                if workflow:
+                                    # Workflow created event already sent via callback
+                                    pass
+                                else:
+                                    # No workflow needed, process as regular command
+                                    assistant.process_command(command, message_id, True)
+
+                            threading.Thread(
+                                target=plan_and_respond,
+                                daemon=True
+                            ).start()
+
+                    elif event_type == "workflow.approve":
+                        from core.workflow import workflow_manager
+                        workflow_id = payload.get("workflow_id")
+                        if workflow_id:
+                            success = workflow_manager.approve_workflow(workflow_id)
+                            if success:
+                                # Start workflow execution in separate thread
+                                threading.Thread(
+                                    target=assistant.execute_workflow,
+                                    args=(workflow_id, message_id),
+                                    daemon=True
+                                ).start()
+                            else:
+                                await self._broadcast_error(
+                                    message_id,
+                                    "WORKFLOW_NOT_FOUND",
+                                    f"Workflow {workflow_id} not found"
+                                )
+
+                    elif event_type == "workflow.cancel":
+                        from core.workflow import workflow_manager
+                        workflow_id = payload.get("workflow_id")
+                        if workflow_id:
+                            workflow_manager.cancel_workflow(workflow_id)
+
+                    elif event_type == "workflow.get":
+                        from core.workflow import workflow_manager
+                        workflow_id = payload.get("workflow_id")
+                        workflow = workflow_manager.get_workflow(workflow_id)
+                        if workflow:
+                            await websocket.send(json.dumps(self._build_message(
+                                "workflow.data",
+                                {"workflow": workflow.to_dict()},
+                                message_id
+                            )))
+                        else:
+                            await self._broadcast_error(
+                                message_id,
+                                "WORKFLOW_NOT_FOUND",
+                                f"Workflow {workflow_id} not found"
+                            )
+
                 except json.JSONDecodeError:
                     print("⚠️ Received invalid JSON from client.")
                     await self._broadcast_error(

@@ -4,6 +4,8 @@ export default defineNuxtPlugin(() => {
         text: string
         sender: 'user' | 'avva'
         data?: any
+        timestamp?: string
+        streamId?: string
     }
 
     interface CoreError {
@@ -37,7 +39,9 @@ export default defineNuxtPlugin(() => {
         conversations: [] as any[],
         currentConversationId: null as string | null,
         currentConversationTitle: 'New Conversation' as string,
-        conversationMessages: [] as any[]
+        conversationMessages: [] as any[],
+        workflows: {} as Record<string, any>,
+        activeWorkflowId: null as string | null
     })
 
     let ws: WebSocket | null = null
@@ -335,6 +339,72 @@ export default defineNuxtPlugin(() => {
                     break
                 case 'conversation.search_results':
                     break
+                case 'workflow.created': {
+                    const wf = payload.workflow
+                    state.workflows[wf.id] = wf
+                    state.activeWorkflowId = wf.id
+                    // Add workflow card as a message
+                    state.messages.push({
+                        id: Date.now(),
+                        text: '',
+                        sender: 'avva',
+                        data: { type: 'workflow', workflow: wf },
+                        timestamp: new Date().toISOString()
+                    })
+                    break
+                }
+                case 'workflow.approved':
+                case 'workflow.step_started':
+                case 'workflow.step_completed':
+                case 'workflow.step_failed': {
+                    const workflowId = payload.workflow_id || payload.workflow?.id
+                    if (workflowId && state.workflows[workflowId]) {
+                        if (payload.workflow) {
+                            state.workflows[workflowId] = payload.workflow
+                        } else if (payload.step) {
+                            // Update the specific step in the stored workflow
+                            const wf = state.workflows[workflowId]
+                            const stepIdx = wf.steps.findIndex((s: any) => s.id === payload.step.id)
+                            if (stepIdx >= 0) {
+                                wf.steps[stepIdx] = payload.step
+                            }
+                        }
+                        // Force reactive update
+                        state.workflows = { ...state.workflows }
+                    }
+                    break
+                }
+                case 'workflow.completed': {
+                    const wf = payload.workflow
+                    if (wf) {
+                        state.workflows[wf.id] = wf
+                        state.workflows = { ...state.workflows }
+                        if (state.activeWorkflowId === wf.id) {
+                            state.activeWorkflowId = null
+                        }
+                        addSuccessToast(`Workflow "${wf.title}" completed`)
+                    }
+                    break
+                }
+                case 'workflow.failed': {
+                    const workflowId = payload.workflow_id
+                    if (workflowId && state.workflows[workflowId]) {
+                        state.workflows[workflowId].status = 'failed'
+                        state.workflows = { ...state.workflows }
+                    }
+                    break
+                }
+                case 'workflow.cancelled': {
+                    const workflowId = payload.workflow_id
+                    if (workflowId && state.workflows[workflowId]) {
+                        state.workflows[workflowId].status = 'cancelled'
+                        state.workflows = { ...state.workflows }
+                        if (state.activeWorkflowId === workflowId) {
+                            state.activeWorkflowId = null
+                        }
+                    }
+                    break
+                }
                 case 'core.error': {
                     const errorEntry: CoreError = {
                         id: id || generateId(),
@@ -555,12 +625,44 @@ export default defineNuxtPlugin(() => {
         }
     }
 
-    const exportConversation = (sessionId: string, format: 'markdown' | 'json' = 'markdown', title?: string) => {
+    const exportConversation = (sessionId: string, format: 'markdown' | 'json' = 'markdown') => {
         if (ws && ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify({
                 id: generateId(),
                 type: 'conversation.export',
                 payload: { session_id: sessionId, format }
+            }))
+        }
+    }
+
+    const planWorkflow = (command: string) => {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            const requestId = generateId()
+            ws.send(JSON.stringify({
+                id: requestId,
+                type: 'workflow.plan',
+                payload: { command }
+            }))
+        }
+    }
+
+    const approveWorkflow = (workflowId: string) => {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            const requestId = generateId()
+            ws.send(JSON.stringify({
+                id: requestId,
+                type: 'workflow.approve',
+                payload: { workflow_id: workflowId }
+            }))
+        }
+    }
+
+    const cancelWorkflow = (workflowId: string) => {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+                id: generateId(),
+                type: 'workflow.cancel',
+                payload: { workflow_id: workflowId }
             }))
         }
     }
@@ -592,7 +694,10 @@ export default defineNuxtPlugin(() => {
                 searchConversations,
                 startConversation,
                 togglePin,
-                exportConversation
+                exportConversation,
+                planWorkflow,
+                approveWorkflow,
+                cancelWorkflow
             }
         }
     }

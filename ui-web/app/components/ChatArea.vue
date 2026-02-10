@@ -65,8 +65,18 @@
                 </span>
               </div>
 
+              <!-- Workflow Card (replaces bubble for workflow messages) -->
+              <WorkflowCard
+                v-if="msg.data?.type === 'workflow' && msg.data?.workflow"
+                :workflow="getWorkflowState(msg.data.workflow.id)"
+                @approve="$ava.approveWorkflow"
+                @cancel="$ava.cancelWorkflow"
+                class="w-full max-w-2xl"
+              />
+
               <!-- Content Bubble -->
               <div
+                v-else
                 class="relative p-5 rounded-[2.2rem] transition-all duration-500 border group-hover/message:shadow-[0_20px_60px_rgba(0,0,0,0.4)]"
                 :class="msg.sender === 'user'
                   ? 'bg-white/[0.04] border-white/[0.08] rounded-tr-lg backdrop-blur-sm hover:bg-white/[0.06] hover:border-white/[0.12]'
@@ -230,9 +240,15 @@
 
 <script setup>
 import { Bot, Copy } from 'lucide-vue-next'
+import WorkflowCard from '~/components/WorkflowCard.vue'
 
 const { $ava } = useNuxtApp()
 const scrollContainer = ref(null)
+
+// Get the live workflow state (updated reactively) by ID
+const getWorkflowState = (workflowId) => {
+  return $ava?.state?.workflows?.[workflowId] || null
+}
 
 const isThinking = computed(() => $ava?.state?.assistantState === 'thinking')
 const isSpeaking = computed(() => $ava?.state?.assistantState === 'speaking')
