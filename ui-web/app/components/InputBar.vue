@@ -81,6 +81,7 @@
             : 'text-white/25 border-transparent hover:text-white hover:bg-white/[0.05] hover:border-white/[0.08]'"
           @pointerdown="startVoice"
           @pointerup="stopVoice"
+          @pointercancel="stopVoice"
           @pointerleave="stopVoice"
         >
           <!-- Pulse ring when recording -->
@@ -159,6 +160,7 @@ import { Terminal, Search, ArrowUp, Zap, Shield, Database, Mic } from 'lucide-vu
 const { $ava } = useNuxtApp()
 const input = ref('')
 const isRecording = ref(false)
+const isVoicePressActive = ref(false)
 const isFocused = ref(false)
 const assistantState = computed(() => $ava?.state?.assistantState)
 
@@ -169,8 +171,13 @@ const badges = [
 ]
 
 watch(assistantState, (state) => {
+  if (state === 'listening') {
+    isRecording.value = true
+    return
+  }
+  isRecording.value = false
   if (state !== 'listening') {
-    isRecording.value = false
+    isVoicePressActive.value = false
   }
 })
 
@@ -182,14 +189,21 @@ const handleSend = () => {
   }
 }
 
-const startVoice = () => {
-  if (isRecording.value) return
+const startVoice = (event) => {
+  if (event?.button !== undefined && event.button !== 0) return
+  if (isVoicePressActive.value) return
+
+  isVoicePressActive.value = true
   isRecording.value = true
   $ava?.startVoiceCapture?.()
 }
 
 const stopVoice = () => {
+  if (!isVoicePressActive.value) return
+
+  isVoicePressActive.value = false
   isRecording.value = false
+  $ava?.interruptAssistant?.()
 }
 </script>
 
