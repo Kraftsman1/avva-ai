@@ -7,6 +7,7 @@ This module manages Brain registration, selection, and fallback logic.
 from typing import Dict, List, Optional, Any
 from core.brain_interface import Brain, BrainCapability, BrainConfig, BrainHealth, BrainResponse, PrivacyLevel
 from core.persistence import storage
+from core.errors import BrainManagerError
 import json
 
 
@@ -147,6 +148,39 @@ class BrainManager:
         
         return False
     
+
+    def set_active_brain_or_raise(self, brain_id: str) -> None:
+        if not brain_id:
+            raise BrainManagerError(
+                "BRAIN_ID_REQUIRED",
+                "Missing required field: brain_id",
+                severity="warning",
+                context={"target": "active"},
+            )
+        if not self.set_active_brain(brain_id):
+            raise BrainManagerError(
+                "BRAIN_NOT_FOUND",
+                f"Brain '{brain_id}' is not registered",
+                severity="warning",
+                context={"brain_id": brain_id, "target": "active"},
+            )
+
+    def set_fallback_brain_or_raise(self, brain_id: str) -> None:
+        if not brain_id:
+            raise BrainManagerError(
+                "BRAIN_ID_REQUIRED",
+                "Missing required field: brain_id",
+                severity="warning",
+                context={"target": "fallback"},
+            )
+        if not self.set_fallback_brain(brain_id):
+            raise BrainManagerError(
+                "BRAIN_NOT_FOUND",
+                f"Brain '{brain_id}' is not registered",
+                severity="warning",
+                context={"brain_id": brain_id, "target": "fallback"},
+            )
+
     def select_brain(self, context: Optional[Dict] = None) -> Optional[Brain]:
         """
         Select appropriate Brain based on context and settings.
@@ -312,6 +346,30 @@ class BrainManager:
                 return True
         return False
     
+
+    def update_brain_config_or_raise(self, brain_id: str, config_data: Dict[str, Any]) -> None:
+        if not brain_id:
+            raise BrainManagerError(
+                "BRAIN_ID_REQUIRED",
+                "Missing required field: brain_id",
+                severity="warning",
+            )
+        if not isinstance(config_data, dict):
+            raise BrainManagerError(
+                "INVALID_BRAIN_CONFIG",
+                "brain config must be an object",
+                severity="warning",
+                context={"brain_id": brain_id},
+            )
+        if not self.update_brain_config(brain_id, config_data):
+            raise BrainManagerError(
+                "BRAIN_CONFIG_UPDATE_FAILED",
+                f"Failed to update config for brain '{brain_id}'",
+                severity="warning",
+                retry_allowed=True,
+                context={"brain_id": brain_id},
+            )
+
     def set_rules_only_mode(self, enabled: bool) -> None:
         """
         Enable or disable rules-only mode (no LLM).

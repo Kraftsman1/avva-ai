@@ -6,6 +6,7 @@ import json
 import uuid
 from datetime import datetime
 from core.assistant import assistant
+from core.errors import CoreErrorException
 
 
 def serialize_datetime(obj):
@@ -106,27 +107,71 @@ class WebSocketServer:
             )
         )
 
+
+    def _safe_event_context(self, event_type, payload):
+        context = {"event_type": event_type}
+        if isinstance(payload, dict):
+            context["payload_keys"] = list(payload.keys())
+        return context
+
+    def _validate_payload_object(self, payload, event_type):
+        if payload is None:
+            return {}
+        if not isinstance(payload, dict):
+            raise CoreErrorException(
+                "INVALID_PAYLOAD",
+                f"Payload for '{event_type}' must be an object",
+                severity="warning",
+                context={"event_type": event_type},
+            )
+        return payload
+
     async def handler(self, websocket):
         await self.register(websocket)
         try:
             async for message in websocket:
                 message_id = str(uuid.uuid4())
                 event_type = None
+                payload = {}
                 try:
                     data = json.loads(message)
+                    if not isinstance(data, dict):
+                        raise CoreErrorException(
+                            "INVALID_MESSAGE",
+                            "Message envelope must be a JSON object",
+                            severity="warning",
+                        )
+
                     event_type = data.get("type")
-                    payload = data.get("payload", {})
-                    message_id = data.get("id") or message_id
+                    inbound_id = data.get("id")
+                    if inbound_id is not None and inbound_id != "":
+                        message_id = str(inbound_id)
+
+                    if not isinstance(event_type, str) or not event_type.strip():
+                        raise CoreErrorException(
+                            "INVALID_EVENT_TYPE",
+                            "Missing or invalid event type",
+                            severity="warning",
+                            context={"event_type": event_type},
+                        )
+
+                    payload = self._validate_payload_object(data.get("payload", {}), event_type)
 
                     if event_type == "assistant.command":
                         command = payload.get("command")
-                        if command:
-                            # Forward command to assistant in a separate thread
-                            threading.Thread(
-                                target=assistant.process_command,
-                                args=(command, message_id, True),
-                                daemon=True
-                            ).start()
+                        if not command:
+                            raise CoreErrorException(
+                                "COMMAND_REQUIRED",
+                                "Missing required field: command",
+                                severity="warning",
+                                context=self._safe_event_context(event_type, payload),
+                            )
+
+                        threading.Thread(
+                            target=assistant.process_command,
+                            args=(command, message_id, True),
+                            daemon=True
+                        ).start()
 
                     elif event_type == "assistant.interrupt":
                         print("⚡ Interrupt received, stopping current operation...")
@@ -150,15 +195,20 @@ class WebSocketServer:
                     elif event_type == "config.update":
                         from core.config import config
                         key = payload.get("key")
+                        if key is None:
+                            raise CoreErrorException(
+                                "CONFIG_KEY_REQUIRED",
+                                "Missing required field: key",
+                                severity="warning",
+                                context=self._safe_event_context(event_type, payload),
+                            )
                         value = payload.get("value")
-                        if key is not None:
-                            config.save_config(key, value)
-                            # Broadcast update to all clients
-                            await self.broadcast(self._build_message(
-                                "config.updated",
-                                {key: value},
-                                message_id
-                            ))
+                        config.save_config(key, value)
+                        await self.broadcast(self._build_message(
+                            "config.updated",
+                            {key: value},
+                            message_id
+                        ))
 
                     elif event_type == "brains.list":
                         from core.brain_manager import brain_manager
@@ -177,12 +227,19 @@ class WebSocketServer:
 
                     elif event_type == "brains.select":
                         from core.brain_manager import brain_manager
-                        target = payload.get("target") # "active" or "fallback"
+                        target = payload.get("target")
                         brain_id = payload.get("brain_id")
                         if target == "active":
-                            brain_manager.set_active_brain(brain_id)
+                            brain_manager.set_active_brain_or_raise(brain_id)
                         elif target == "fallback":
-                            brain_manager.set_fallback_brain(brain_id)
+                            brain_manager.set_fallback_brain_or_raise(brain_id)
+                        else:
+                            raise CoreErrorException(
+                                "INVALID_BRAIN_TARGET",
+                                "target must be 'active' or 'fallback'",
+                                severity="warning",
+                                context=self._safe_event_context(event_type, payload),
+                            )
 
                         await self.broadcast(self._build_message(
                             "brains.updated",
@@ -195,12 +252,26 @@ class WebSocketServer:
 
                     elif event_type == "brains.toggle_mode":
                         from core.brain_manager import brain_manager
-                        mode = payload.get("mode") # "rules_only" or "auto_selection"
+                        mode = payload.get("mode")
                         enabled = payload.get("enabled", False)
+                        if not isinstance(enabled, bool):
+                            raise CoreErrorException(
+                                "INVALID_MODE_VALUE",
+                                "enabled must be a boolean",
+                                severity="warning",
+                                context=self._safe_event_context(event_type, payload),
+                            )
                         if mode == "rules_only":
                             brain_manager.set_rules_only_mode(enabled)
                         elif mode == "auto_selection":
                             brain_manager.set_auto_selection(enabled)
+                        else:
+                            raise CoreErrorException(
+                                "INVALID_BRAIN_MODE",
+                                "mode must be 'rules_only' or 'auto_selection'",
+                                severity="warning",
+                                context=self._safe_event_context(event_type, payload),
+                            )
 
                         await self.broadcast(self._build_message(
                             "brains.mode_updated",
@@ -215,35 +286,39 @@ class WebSocketServer:
                         from core.brain_manager import brain_manager
                         brain_id = payload.get("brain_id")
                         config_data = payload.get("config", {})
-                        success = brain_manager.update_brain_config(brain_id, config_data)
+                        brain_manager.update_brain_config_or_raise(brain_id, config_data)
 
-                        if success:
-                            # Broadcast updated brain data
-                            brains_info = brain_manager.get_brain_display_info()
-                            await self.broadcast(self._build_message(
-                                "brains.data",
-                                {
-                                    "brains": brains_info,
-                                    "active_id": brain_manager.active_brain_id,
-                                    "fallback_id": brain_manager.fallback_brain_id,
-                                    "rules_only": brain_manager.rules_only_mode,
-                                    "auto_selection": brain_manager.auto_selection_enabled
-                                },
-                                message_id
-                            ))
+                        brains_info = brain_manager.get_brain_display_info()
+                        await self.broadcast(self._build_message(
+                            "brains.data",
+                            {
+                                "brains": brains_info,
+                                "active_id": brain_manager.active_brain_id,
+                                "fallback_id": brain_manager.fallback_brain_id,
+                                "rules_only": brain_manager.rules_only_mode,
+                                "auto_selection": brain_manager.auto_selection_enabled
+                            },
+                            message_id
+                        ))
 
                     elif event_type == "settings.get":
                         from core.config import config
-                        # Filter out sensitive keys for broad broadcast? No, just send it for now
                         await websocket.send(json.dumps(self._build_message(
                             "settings.data",
-                            config.defaults, # This includes merged env defaults
+                            config.defaults,
                             message_id
                         )))
 
                     elif event_type == "settings.update":
                         from core.config import config
                         updates = payload.get("settings", {})
+                        if not isinstance(updates, dict):
+                            raise CoreErrorException(
+                                "INVALID_SETTINGS_PAYLOAD",
+                                "settings must be an object",
+                                severity="warning",
+                                context=self._safe_event_context(event_type, payload),
+                            )
                         for k, v in updates.items():
                             config.save_config(k, v)
 
@@ -295,7 +370,6 @@ class WebSocketServer:
                         from core.memory import memory
                         query = payload.get("query", "")
                         results = memory.recall(query)
-                        # Note: recall() already converts datetime to string in its implementation
                         await websocket.send(json.dumps(self._build_message(
                             "conversation.search_results",
                             {"query": query, "results": results},
@@ -339,6 +413,13 @@ class WebSocketServer:
                                 },
                                 message_id
                             )))
+                    else:
+                        raise CoreErrorException(
+                            "UNKNOWN_EVENT",
+                            f"Unsupported event type: {event_type}",
+                            severity="warning",
+                            context=self._safe_event_context(event_type, payload),
+                        )
 
                 except json.JSONDecodeError:
                     print("⚠️ Received invalid JSON from client.")
@@ -348,12 +429,28 @@ class WebSocketServer:
                         "Received invalid JSON from client.",
                         context={"event_type": event_type},
                     )
+                except CoreErrorException as e:
+                    context = dict(e.context or {})
+                    context.setdefault("event_type", event_type)
+                    await self.broadcast(
+                        self._build_message(
+                            "core.error",
+                            self._build_error_payload(
+                                e.code,
+                                e.message,
+                                severity=e.severity,
+                                retry_allowed=e.retry_allowed,
+                                context=context,
+                            ),
+                            message_id,
+                        )
+                    )
                 except Exception as e:
                     await self._broadcast_error(
                         message_id,
                         "WS_HANDLER_ERROR",
                         str(e),
-                        context={"event_type": event_type},
+                        context={"event_type": event_type, "exception_type": type(e).__name__},
                         retry_allowed=True,
                     )
         except websockets.exceptions.ConnectionClosed:

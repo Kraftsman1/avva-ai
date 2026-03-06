@@ -242,13 +242,7 @@ const currentSessionLabel = computed(() => {
 })
 
 const interrupt = () => {
-  if ($ava?.ws?.readyState === WebSocket.OPEN) {
-    $ava.ws.send(JSON.stringify({
-      id: crypto.randomUUID(),
-      type: 'assistant.interrupt',
-      payload: {}
-    }))
-  }
+  $ava?.interruptAssistant?.()
 }
 
 // Auto-scroll when thinking state changes
