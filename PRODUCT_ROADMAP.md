@@ -2,8 +2,8 @@
 
 **Project**: AVVA — Advanced Voice Virtual Assistant
 **Document Type**: Strategic Feature Roadmap
-**Last Updated**: 2026-02-04
-**Status**: Draft for Review
+**Last Updated**: 2026-03-06
+**Status**: Active (MVP+1 Execution)
 
 ---
 
@@ -33,12 +33,12 @@ Transform AVVA from a functional Linux virtual assistant into a **comprehensive,
 - ✅ WebSocket-based Core ↔ UI communication
 - ✅ Basic system integration (app launching, system stats)
 
-**Known Gaps** (From PRD Validation):
-- ❌ Streaming responses
-- ❌ Correlation IDs in protocol
-- ❌ Structured error handling
-- ❌ Voice input UI controls
-- ❌ Loading/saving state feedback
+**Known Gaps** (From PRD Validation + execution updates):
+- ⚠️ Streaming responses (partially implemented, needs provider-complete rollout)
+- ✅ Correlation IDs in protocol (implemented)
+- ⚠️ Structured error handling (implemented baseline, needs hardening + UX polish)
+- ⚠️ Voice input UI controls (implemented baseline push-to-talk, needs QA polish)
+- ❌ Loading/saving state feedback (remaining gap)
 
 See `PRD_VALIDATION_REPORT.md` for detailed compliance analysis.
 
@@ -53,6 +53,26 @@ Features organized by:
 
 ---
 
+## Delivery Snapshot (March 2026)
+
+### Recently Shipped
+- ✅ **P0.2 Correlation IDs**: request/response correlation and timeout tracking now wired in Core ↔ UI protocol.
+- ⚠️ **P0.3 Structured Errors**: standardized `core.error` path is in place, but still needs stricter typing coverage and end-to-end scenario validation.
+- ⚠️ **P0.4 Voice Input Controls**: UI mic controls and push-to-talk behavior are in place, with remaining UX/stability follow-ups.
+
+### What’s Next (Priority Order)
+1. **P0.5 Loading & Saving State Feedback** (close remaining high-visibility PRD gap)
+2. **P0.3 Hardening Pass** (typed error taxonomy, retries, settings error log UX)
+3. **P0.1 Streaming Completion** (provider parity + smooth UI chunk rendering)
+4. **Protocol naming consistency pass** (`brain.*` vs `brains.*`, `settings.synced` vs `settings.updated`)
+
+### Exit Criteria Before P1 Expansion
+- All P0 items marked ✅ or documented as deferred with rationale.
+- Manual QA checklist for command, voice, brain selection, and settings flows.
+- Protocol contract documented in one canonical spec used by Core and UI.
+
+---
+
 # Priority 0: Critical Foundations
 
 *Fix PRD gaps and essential table-stakes features*
@@ -61,6 +81,7 @@ Features organized by:
 **Timeline**: Immediate (Week 1-2)
 **Effort**: M (2 weeks)
 **Dependencies**: None
+**Current Status**: ⚠️ In Progress
 
 **What**: Implement incremental response rendering as Brain generates output
 
@@ -94,6 +115,7 @@ Features organized by:
 **Timeline**: Immediate (Week 2)
 **Effort**: S (3 days)
 **Dependencies**: None
+**Current Status**: ✅ Implemented
 
 **What**: Add unique `id` field to all WebSocket messages for request/response correlation
 
@@ -124,6 +146,7 @@ Features organized by:
 **Timeline**: Immediate (Week 2-3)
 **Effort**: M (1 week)
 **Dependencies**: P0.2 (Correlation IDs)
+**Current Status**: ⚠️ In Progress (baseline shipped, hardening pending)
 
 **What**: Implement `core.error` event with standardized error schema
 
@@ -168,6 +191,7 @@ Features organized by:
 **Timeline**: Immediate (Week 3)
 **Effort**: S (2 days)
 **Dependencies**: None
+**Current Status**: ⚠️ In Progress (baseline shipped, UX polish pending)
 
 **What**: Add microphone button to trigger voice capture from UI
 
@@ -199,6 +223,7 @@ Features organized by:
 **Timeline**: Immediate (Week 3-4)
 **Effort**: S (2 days)
 **Dependencies**: None
+**Current Status**: ❌ Not Started
 
 **What**: Visual feedback for all async operations (settings save, brain selection)
 
